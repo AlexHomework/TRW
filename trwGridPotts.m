@@ -5,6 +5,7 @@ hor_y = zeros(N, M);
 lambda_unary_hor = zeros(N, M, K);
 ver_y = zeros(N, M);
 lambda_unary_ver = zeros(N, M, K);
+dual_unary = unary / 2;
 lower_energy_arr = [];
 upper_energy_arr = [];
 for iteration = 1:10
@@ -15,14 +16,14 @@ for iteration = 1:10
 	lower_energy = 0;
 	% Horizontal chains
 	for chain_i = 1:N
-		chain_unary = reshape(unary(chain_i, :, :), M, K) + reshape(lambda_unary_hor(chain_i, :, :), M, K);
+		chain_unary = reshape(dual_unary(chain_i, :, :), M, K) + reshape(lambda_unary_hor(chain_i, :, :), M, K);
 		[sub_en, hor_y(chain_i, :)] = minimize_chain(chain_unary, horC(chain_i, :), metric);
 		lower_energy = lower_energy + sub_en;
 	end
 
 	% Vertical chains
 	for chain_i = 1:M
-		chain_unary = reshape(unary(:, chain_i, :), N, K) + reshape(lambda_unary_ver(:, chain_i, :), N, K);
+		chain_unary = reshape(dual_unary(:, chain_i, :), N, K) + reshape(lambda_unary_ver(:, chain_i, :), N, K);
 		[sub_en, ver_y(:, chain_i)] = minimize_chain(chain_unary, vertC(:, chain_i), metric);
 		lower_energy = lower_energy + sub_en;
 	end

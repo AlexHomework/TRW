@@ -62,6 +62,8 @@ for iteration = 1:3
 		% lower_energy += sub_en;
 	end
 
+	upper_energy = min(gridEnergy(hor_y), gridEnergy(ver_y));
+
 
 	% Lambda subgradient maximisation
 	lambda_unary_ver += alpha_n * (ver_y - hor_y);

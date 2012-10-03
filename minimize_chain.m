@@ -17,7 +17,7 @@ end
 % message_backward(i) it's message from i to i - 1
 message_backward = zeros(N, K);
 
-message_backward(N, :) = unary(N, :);
+message_backward(N, :) = min(repmat(unary(N, :), K, 1) + C(N - 1) * metric, [], 2)';
 for t = N-1:-1:2
 	message_backward(t, :) = min(repmat(unary(t, :) + message_backward(t + 1, :), K, 1) + C(t - 1) * metric, [], 2)';
 end

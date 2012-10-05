@@ -17,15 +17,6 @@ for t = 2:N-1
 	message_forward(t, :) = min(el(idx_matrix, :) + C(t) * metric, [], 2)';
 end
 
-% message_backward(i) it's message from i to i - 1
-message_backward = zeros(N, K);
-
-message_backward(N, :) = min(unary(N * idx_matrix, :) + C(N - 1) * metric, [], 2)';
-for t = N-1:-1:2
-	el = unary(t, :) + message_backward(t + 1, :);
-	message_backward(t, :) = min(el(idx_matrix, :) + C(t - 1) * metric, [], 2)';
-end
-
 y = zeros(1, N);
 [energy, y(N)] = min(message_forward(N - 1, :) + unary(N, :));
 for t = N-1:-1:2

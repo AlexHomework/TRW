@@ -27,9 +27,9 @@ for t = N-1:-1:2
 end
 
 y = zeros(1, N);
-[energy, y(1)] = min(message_backward(2, :) + unary(1, :));
-[~, y(N)] = min(message_forward(N - 1, :) + unary(N, :));
-for t = 2:N-1
-	[~, y(t)] = min(message_forward(t - 1, :) + message_backward(t + 1, :) + unary(t, :));
+[energy, y(N)] = min(message_forward(N - 1, :) + unary(N, :));
+for t = N-1:-1:2
+	[~, y(t)] = min(message_forward(t - 1, :) + C(t) * metric(y(t + 1), :) + unary(t, :));
 end
+[~, y(1)] = min(C(1) * metric(y(2), :) + unary(1, :));
 end

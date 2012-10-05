@@ -10,17 +10,19 @@ idx_matrix = ones(1, K); % we will use this matrix as index inspite of using rep
 
 % message_forward(i) it's message from i to i + 1
 message_forward = zeros(N - 1, K);
+message_forward_y = zeros(K, N - 1);
 
-message_forward(1, :) = min(unary(idx_matrix, :) + C(1) * metric, [], 2)';
+[values, message_forward_y(:, 1)] = min(unary(idx_matrix, :) + C(1) * metric, [], 2);
+message_forward(1, :) = values';
 for t = 2:N-1
 	el = unary(t, :) + message_forward(t - 1, :);
-	message_forward(t, :) = min(el(idx_matrix, :) + C(t) * metric, [], 2)';
+	[values, message_forward_y(:, t)] = min(el(idx_matrix, :) + C(t) * metric, [], 2);
+	message_forward(t, :) = values';
 end
 
 y = zeros(1, N);
 [energy, y(N)] = min(message_forward(N - 1, :) + unary(N, :));
-for t = N-1:-1:2
-	[~, y(t)] = min(message_forward(t - 1, :) + C(t) * metric(y(t + 1), :) + unary(t, :));
+for t = N-1:-1:1
+	y(t) = message_forward_y(y(t + 1), t);
 end
-[~, y(1)] = min(C(1) * metric(y(2), :) + unary(1, :));
 end

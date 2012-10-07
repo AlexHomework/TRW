@@ -48,7 +48,7 @@ function [labels, energy, lowerBound, time] = dualDecomposition(N, K, f1, f2)
 		alpha_n = alpha_n / sum(sum(labels_first ~= labels_second));
 
 
-		% Lambda projected subgradient maximisation
+		% Lambda projected subgradient maximization
 		for p = 1:K
 			lambda_first(:, :, p) = lambda_first(:, :, p) + alpha_n * ((labels_first == p) - (labels_second == p));
 			lambda_second(:, :, p) = lambda_second(:, :, p) + alpha_n * ((labels_second == p) - (labels_first == p));

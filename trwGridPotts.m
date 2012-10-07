@@ -14,6 +14,7 @@ dual_energy_arr = [];
 upper_energy_arr = [];
 best_dual_energy = 0;
 t = cputime;
+% figure;
 for iteration = 1:10
 	% Y minimization
 	% The lower energy estimate
@@ -24,24 +25,19 @@ for iteration = 1:10
 		[sub_en, hor_y(chain_i, :)] = minimize_chain(chain_unary, horC(chain_i, :), metric);
 		dual_energy = dual_energy + sub_en;
 	end
-
-	figure;
-	imshow(mat2gray(hor_y));
-
+	
 	% Vertical chains
 	for chain_i = 1:M
 		chain_unary = reshape(dual_unary(:, chain_i, :), N, K) + reshape(lambda_unary_ver(:, chain_i, :), N, K);
 		[sub_en, ver_y(:, chain_i)] = minimize_chain(chain_unary, vertC(:, chain_i), metric);
 		dual_energy = dual_energy + sub_en;
 	end
-	% figure;
-	% imshow(mat2gray(ver_y));
 
-	upper_energy = min(gridEnergy(unary, vertC, horC, metric, hor_y), gridEnergy(unary, vertC, horC, metric, ver_y));
+	% upper_energy = min(gridEnergy(unary, vertC, horC, metric, hor_y), gridEnergy(unary, vertC, horC, metric, ver_y));
 
 	best_dual_energy = max(best_dual_energy, dual_energy);
 	dual_energy_arr = [dual_energy_arr, dual_energy];
-	upper_energy_arr = [upper_energy_arr, upper_energy];
+	% upper_energy_arr = [upper_energy_arr, upper_energy];
 
 
 	% Subgradient step computation
@@ -62,7 +58,7 @@ for iteration = 1:10
 	% alpha_n = 0.5;
 
 
-	% Lambda subgradient maximisation
+	% Lambda subgradient maximization
 	for p = 1:K
 		lambda_unary_hor(:, :, p) = lambda_unary_hor(:, :, p) + alpha_n * ((hor_y == p) - (ver_y == p));
 		lambda_unary_ver(:, :, p) = lambda_unary_ver(:, :, p) + alpha_n * ((ver_y == p) - (hor_y == p));
@@ -71,9 +67,13 @@ for iteration = 1:10
 	cputime - t
 end
 
+showImage(hor_y);
+
 figure;
-plot(upper_energy_arr);
+% plot(upper_energy_arr);
 hold on;
 plot(dual_energy_arr, 'r');
 
 end
+
+

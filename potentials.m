@@ -2,10 +2,10 @@ function [unary, vertC, horC, metric] = potentials(image1, image2)
 % input: two YUV stereo images
 [N, M, ~] = size(image1);
 % Let's for begining fix disparities range to [-20, 20]
-K = 21;
-L = 20;
+K = 61;
+L = 10;
 alpha = 1;
-s = 2;
+s = 7;
 
 unary = zeros(N, M, K);
 image1_sq = sum(image1.^2, 3);
@@ -17,10 +17,10 @@ for p = 1:K
 	elseif dspr < 0
 		dspr = -dspr;
 		unary(:, dspr+1 : M, p) = sqrt(sum((image1(:, dspr+1 : M, :) - image2(:, 1 : M-dspr, :)) .^ 2, 3));
-		unary(:, 1 : dspr, p) = +inf * ones(N, dspr, 1);
+		unary(:, 1 : dspr, p) = 1000 * ones(N, dspr, 1);
 	else
 		unary(:, 1 : M-dspr, p) = sqrt(sum((image1(:, 1 : M-dspr, :) - image2(:, dspr+1 : M, :)) .^ 2, 3));
-		unary(:, M-dspr+1 : M, p) = +inf * ones(N, dspr, 1);
+		unary(:, M-dspr+1 : M, p) = 1000 * ones(N, dspr, 1);
 	end
 end
 
@@ -39,7 +39,6 @@ for i = 1:K
 	end
 end
 end
-
 
 
 function disparity = disparity(p, K)

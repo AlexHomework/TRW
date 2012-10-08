@@ -12,20 +12,26 @@ function [labels, energy, lowerBound, time] = dualDecomposition(N, K, f1, f2)
 	% localEnergy  = min f1'(x, \theta1 + \lambda)
 	% wholeEnergy  = f1'(labels, \theta1 + \lambda) + f2'(labels, \theta1 + \lambda)
 
+	gamma0 = 1.5;
+	gamma1 = 0.5;
+	epsilon = @(n) 1 / n;
+	delta_prev = 1000;
+
 	lambda_first = zeros(N, K);
 	lambda_second = zeros(N, K);
 	lowerBound = [];
 	energy = [];
 	best_dual_energy = 0;
 	time = [];
-	for iteration = 1:10
+	t = cputime;
+	for iteration = 1:1
 		% Y minimization
 		% The lower energy estimate
 		[localEnergy, wholeEnergy, labels_first] = f1(lambda_first);
 		dual_energy = localEnergy;
 		upper_energy = wholeEnergy;
 		[localEnergy, wholeEnergy, labels_second] = f2(lambda_second);
-		dual_energy += localEnergy;
+		dual_energy = dual_energy + localEnergy;
 		upper_energy = min(wholeEnergy, upper_energy);
 
 		best_dual_energy = max(best_dual_energy, dual_energy);
@@ -37,7 +43,7 @@ function [labels, energy, lowerBound, time] = dualDecomposition(N, K, f1, f2)
 		if iteration == 1
 			delta = delta_prev;
 		else
-			if dual_energy > dual_energy_arr(iteration - 1)
+			if dual_energy > lowerBound(iteration - 1)
 				delta = gamma0 * delta_prev;
 			else
 				delta = max(gamma1 * delta_prev, epsilon(iteration));
@@ -50,8 +56,8 @@ function [labels, energy, lowerBound, time] = dualDecomposition(N, K, f1, f2)
 
 		% Lambda projected subgradient maximization
 		for p = 1:K
-			lambda_first(:, :, p) = lambda_first(:, :, p) + alpha_n * ((labels_first == p) - (labels_second == p));
-			lambda_second(:, :, p) = lambda_second(:, :, p) + alpha_n * ((labels_second == p) - (labels_first == p));
+			lambda_first(:, p) = lambda_first(:, p) + alpha_n * ((labels_first == p) - (labels_second == p));
+			lambda_second(:, p) = lambda_second(:, p) + alpha_n * ((labels_second == p) - (labels_first == p));
 		end
 
 		time = [time, cputime - t];

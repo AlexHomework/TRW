@@ -1,11 +1,11 @@
-function [labels, energy, lowerBound, time] = dualDecomposition(N, K, f1, f2)
+function [labels, energy, lowerBound, time] = dualDecomposition(K, N, f1, f2)
 	% Whole dual problem is to find
 	% min f1'(x1, \theta1) + min f2'(x2, \theta2)
 	% subject to x1 = x2
 	% f1(\lambda) = min over x1 (f1'(x1, \theta1 + \lambda))
 	% 
 	% \theta is a matrix:
-	% [N, K] = size(\theta)
+	% [K, N] = size(\theta)
 	% 
 	% [localEnergy, wholeEnergy, labels] = f1(\lambda)
 	% where labels = argmin f1'(x, \theta1 + \lambda)
@@ -17,8 +17,8 @@ function [labels, energy, lowerBound, time] = dualDecomposition(N, K, f1, f2)
 	epsilon = @(n) 1 / n;
 	delta_prev = 1000;
 
-	lambda_first = zeros(N, K);
-	lambda_second = zeros(N, K);
+	lambda_first = zeros(K, N);
+	lambda_second = zeros(K, N);
 	lowerBound = [];
 	energy = [];
 	best_dual_energy = 0;
@@ -56,8 +56,8 @@ function [labels, energy, lowerBound, time] = dualDecomposition(N, K, f1, f2)
 
 		% Lambda projected subgradient maximization
 		for p = 1:K
-			lambda_first(:, p) = lambda_first(:, p) + alpha_n * ((labels_first == p) - (labels_second == p));
-			lambda_second(:, p) = lambda_second(:, p) + alpha_n * ((labels_second == p) - (labels_first == p));
+			lambda_first(p, :) = lambda_first(p, :) + alpha_n * reshape(((labels_first == p) - (labels_second == p)), 1, N);
+			lambda_second(p, :) = lambda_second(p, :) + alpha_n * reshape(((labels_second == p) - (labels_first == p)), 1, N);
 		end
 
 		time = [time, cputime - t];

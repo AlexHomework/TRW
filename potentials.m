@@ -7,20 +7,20 @@ L = 10;
 alpha = 1;
 s = 7;
 
-unary = zeros(N, M, K);
+unary = zeros(K, N, M);
 image1_sq = sum(image1.^2, 3);
 image2_sq = sum(image2.^2, 3);
 for p = 1:K
 	dspr = disparity(p, K);
 	if dspr == 0
-		unary(:, :, p) = sqrt(sum((image1(:, :, :) - image2(:, :, :)) .^ 2, 3));
+		unary(p, :, :) = sqrt(sum((image1(:, :, :) - image2(:, :, :)) .^ 2, 3));
 	elseif dspr < 0
 		dspr = -dspr;
-		unary(:, dspr+1 : M, p) = sqrt(sum((image1(:, dspr+1 : M, :) - image2(:, 1 : M-dspr, :)) .^ 2, 3));
-		unary(:, 1 : dspr, p) = 1000 * ones(N, dspr, 1);
+		unary(p, :, dspr+1 : M) = sqrt(sum((image1(:, dspr+1 : M, :) - image2(:, 1 : M-dspr, :)) .^ 2, 3));
+		unary(p, :, 1 : dspr) = 1000 * ones(N, dspr, 1);
 	else
-		unary(:, 1 : M-dspr, p) = sqrt(sum((image1(:, 1 : M-dspr, :) - image2(:, dspr+1 : M, :)) .^ 2, 3));
-		unary(:, M-dspr+1 : M, p) = 1000 * ones(N, dspr, 1);
+		unary(p, :, 1 : M-dspr) = sqrt(sum((image1(:, 1 : M-dspr, :) - image2(:, dspr+1 : M, :)) .^ 2, 3));
+		unary(p, :, M-dspr+1 : M) = 1000 * ones(N, dspr, 1);
 	end
 end
 

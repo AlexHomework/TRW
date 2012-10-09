@@ -1,9 +1,9 @@
 function [energy] = gridEnergy(unary, vertC, horC, metric, y)
 	energy = 0;
-	[N, M, K] = size(unary);
+	[K, N, M] = size(unary);
 	for i = 1:N
 		for j = 1:M
-			energy = energy + unary(i, j, y(i, j));
+			energy = energy + unary(y(i, j), i, j);
 
 			% Edges
 			if j > 1

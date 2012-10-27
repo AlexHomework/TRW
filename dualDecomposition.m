@@ -12,10 +12,6 @@ function [labels, energy, lowerBound, time] = dualDecomposition(K, N, f1, f2)
 	% localEnergy  = min f1'(x, \theta1 + \lambda)
 	% wholeEnergy  = f1'(labels, \theta1 + \lambda) + f2'(labels, \theta1 + \lambda)
 
-	gamma0 = 1.5;
-	gamma1 = 0.5;
-	epsilon = @(n) 1 / n;
-	delta_prev = 1000;
 
 	lambda_first = zeros(K, N);
 	lambda_second = zeros(K, N);
@@ -23,8 +19,9 @@ function [labels, energy, lowerBound, time] = dualDecomposition(K, N, f1, f2)
 	energy = [];
 	best_dual_energy = 0;
 	time = [];
+	context = struct();
 	t = cputime;
-	for iteration = 1:1
+	for iteration = 1:4
 		% Y minimization
 		% The lower energy estimate
 		[localEnergy, wholeEnergy, labels_first] = f1(lambda_first);
@@ -39,26 +36,10 @@ function [labels, energy, lowerBound, time] = dualDecomposition(K, N, f1, f2)
 		energy = [energy, upper_energy];
 
 
-		 % Adaptive projected subgradient step computation
-		if iteration == 1
-			delta = delta_prev;
-		else
-			if dual_energy > lowerBound(iteration - 1)
-				delta = gamma0 * delta_prev;
-			else
-				delta = max(gamma1 * delta_prev, epsilon(iteration));
-			end
-		end
-		delta_prev = delta;
-		alpha_n = best_dual_energy + delta - dual_energy;
-		alpha_n = alpha_n / sum(sum(labels_first ~= labels_second));
+		[lambda_first_diff, lambda_second_diff, context] = adaptiveSubgradient(labels_first, labels_second, lowerBound, best_dual_energy, K, N, iteration, context);
 
-
-		% Lambda projected subgradient maximization
-		for p = 1:K
-			lambda_first(p, :) = lambda_first(p, :) + alpha_n * reshape(((labels_first == p) - (labels_second == p)), 1, N);
-			lambda_second(p, :) = lambda_second(p, :) + alpha_n * reshape(((labels_second == p) - (labels_first == p)), 1, N);
-		end
+		lambda_first = lambda_first + lambda_first_diff;
+		lambda_second = lambda_second + lambda_second_diff;
 
 		time = [time, cputime - t];
 	end

@@ -1,0 +1,61 @@
+\documentclass{article}
+\usepackage[russian]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{graphics}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{color}
+\usepackage{hyperref}
+
+\title
+    {Решение задачи MAP для марковской сети типа решётка}
+\author
+    {Новиков~А.\,В.\\
+    МГУ, ВМиК, каф. ММП}
+
+\begin{document}
+\maketitle
+
+\pagebreak
+
+\section{Постановка задачи}
+Марковские сети применяются практически повсюду.
+После обучение сети нужно делать её использовать,
+то есть решать задачу максимизации апостериорной вероятности.
+Для большинства реальных задач эта задача NP-сложная.\\
+В данной статье проводится обзор существующих
+state-of-the-art подходов к этой задаче.
+\pagebreak
+
+\section{Методы}
+Мы остановимся на подклассе алгоритмов использующих
+двойственное разложение. В них задача минимазации
+исходной энергии сводится к задаче максимизации
+двойственной энергии (это всегда строго выпулая функция).
+Алгоритмы этой группы отличает конкретный метод максимизации.
+\begin{itemize}
+\item Покоординатный спуск~\cite{Coordinatewise}
+\item Субградиентный спуск~\cite{Subgradient}
+\item Bundle methods~\cite{Bundle}
+\item <<Полная декомпозиция>>
+\end{itemize}
+\pagebreak
+
+
+\begin{thebibliography}{1}
+\bibitem{Coordinatewise}
+    {Sontag~D.,  Jaakkola~T.}
+    {New outer bounds on the marginal polytope}~//
+    NIPS,~2008.
+\bibitem{Subgradient}
+    {Komodakis~N., Paragios~N., Tziritas~G.}
+    {MRF energy minimization and beyond via dual decomposition}~//
+    Pattern Analysis and Machine Intelligence, IEEE Transactions on, 2011.~--- С.\,531--552.
+\bibitem{Bundle}
+    {Kappes~J.\,H.}
+    {A Bundle Approach To Efficient MAP-Inference by Lagrangian Relaxation}~//
+    Computer Vision and Pattern Recognition (CVPR), IEEE Conference 2012.~--- С.\,1688--1695.
+\end{thebibliography}
+\end{document}

@@ -1,13 +1,14 @@
 \documentclass{article}
 \usepackage[russian]{babel}
 \usepackage[utf8]{inputenc}
-\usepackage{graphics}
 \usepackage{epsfig}
 \usepackage{graphicx}
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{color}
 \usepackage{hyperref}
+\usepackage{amssymb}
+\usepackage{amsmath}
 
 \title
     {Решение задачи MAP для марковской сети типа решётка}
@@ -22,7 +23,7 @@
 
 \section{Постановка задачи}
 Марковские сети применяются практически повсюду.
-После обучение сети нужно делать её использовать,
+После обучение сети нужно её использовать,
 то есть решать задачу максимизации апостериорной вероятности.
 Для большинства реальных задач эта задача NP-сложная.\\
 В данной статье проводится обзор существующих
@@ -30,25 +31,83 @@ state-of-the-art подходов к этой задаче.
 \pagebreak
 
 \section{Методы}
-Мы остановимся на подклассе алгоритмов использующих
+Мы остановились на подклассе алгоритмов использующих
 двойственное разложение. В них задача минимазации
 исходной энергии сводится к задаче максимизации
 двойственной энергии (это всегда строго выпулая функция).
 Алгоритмы этой группы отличает конкретный метод максимизации.
 \begin{itemize}
-\item Покоординатный спуск~\cite{Coordinatewise}
-\item Субградиентный спуск~\cite{Subgradient}
+\item Субградиентный подъём~\cite{Subgradient}
 \item Bundle methods~\cite{Bundle}
 \item <<Полная декомпозиция>>
 \end{itemize}
 \pagebreak
 
+\section{Данные}
+Для сравнения подходов мы использовали данные
+опубликованные Karteek Alahari~\cite{Alahari}
+\pagebreak
+
+
+\section{Субградиентный подъём}
+Результаты работы данного метода зависят от выбора
+последовательности шагов $\alpha_t$.
+После 80 итераций всё вариации метода сошлись к
+примерно одной и той же (на глаз) разметке.\\
+Использовался константный и адаптивный шаг.
+В случае адаптивного шага использовалась следующая формула:\\
+$\alpha_t = \frac{Approx_t - Dual_t}{\left \| \Delta \overrightarrow{g_t} \right \|^2}$\\
+Где $Dual_t$~--- текущее значение двойственной функции, 
+$Approx_t$~--- оценка оптимума двойственной функции.\\
+$Approx_t = BestDual_t + \delta_t$,\\
+где $BestDual_t$~--- лучшее на данный момент значение двойственной функции,\\
+\begin{equation}
+    \delta_{t+1} = \begin{cases}
+    \gamma_0 \delta_t, & Dual_t > Dual_{t-1},\\
+    max(\gamma_1 \delta_t, \epsilon) & Dual_t \leqslant  Dual_{t-1}.
+    \end{cases}
+\end{equation}
+$\gamma_0$, $\gamma_1$, $\epsilon$~--- параметры метода, выбранные нами эмпирически.\\
+$\gamma_0 = 1.5$\\
+$\gamma_1 = 0.5$\\
+$\epsilon_t = \frac{1}{t}$\\
+\begin{figure}
+    \centering
+    \begin{subfigure}[t]{0.7\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{constant_0_1_convergence.eps}
+            \caption{$\alpha_t = 0.1$}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.7\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{constant_0_3_convergence.eps}
+            \caption{$\alpha_t = 0.3$}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.7\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{constant_1_convergence.eps}
+            \caption{$\alpha_t = 1$}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.7\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{adaptive_convergence.eps}
+            \caption{Адаптивный шаг}
+    \end{subfigure}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{adaptive_result.eps}
+\caption{Итоговая разметка}
+\end{figure}
+\pagebreak
+
 
 \begin{thebibliography}{1}
-\bibitem{Coordinatewise}
-    {Sontag~D.,  Jaakkola~T.}
-    {New outer bounds on the marginal polytope}~//
-    NIPS,~2008.
+\bibitem{Alahari}
+    {Alahari~K., Kohli~P., Torr~P.~H.~S.}
+    {Dynamic Hybrid Algorithms for MAP Inference in Discrete MRFs}~//
+    {IEEE} Trans. Pattern Anal. Mach. Intell., 2010.~--- С.\,1846--1857.
 \bibitem{Subgradient}
     {Komodakis~N., Paragios~N., Tziritas~G.}
     {MRF energy minimization and beyond via dual decomposition}~//

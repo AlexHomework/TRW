@@ -1,4 +1,4 @@
-function [labels, energy, lowerBound, time] = dualDecomposition(K, N, f1, f2)
+function [labels, energy, lowerBound, time] = dualDecomposition(K, N, f1, f2, dualStep)
 	% Whole dual problem is to find
 	% min f1'(x1, \theta1) + min f2'(x2, \theta2)
 	% subject to x1 = x2
@@ -21,7 +21,7 @@ function [labels, energy, lowerBound, time] = dualDecomposition(K, N, f1, f2)
 	time = [];
 	context = struct();
 	t = cputime;
-	for iteration = 1:4
+	for iteration = 1:10
 		% Y minimization
 		% The lower energy estimate
 		[localEnergy, wholeEnergy, labels_first] = f1(lambda_first);
@@ -36,7 +36,8 @@ function [labels, energy, lowerBound, time] = dualDecomposition(K, N, f1, f2)
 		energy = [energy, upper_energy];
 
 
-		[lambda_first_diff, lambda_second_diff, context] = adaptiveSubgradient(labels_first, labels_second, lowerBound, best_dual_energy, K, N, iteration, context);
+		[lambda_first_diff, lambda_second_diff, context] = dualStep(labels_first, ...
+								labels_second, lowerBound, best_dual_energy, K, N, iteration, context);
 
 		lambda_first = lambda_first + lambda_first_diff;
 		lambda_second = lambda_second + lambda_second_diff;

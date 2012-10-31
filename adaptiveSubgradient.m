@@ -1,4 +1,6 @@
-function [lambda_first_diff, lambda_second_diff, context] = adaptiveSubgradient(labels_first, labels_second, lowerBound, best_dual_energy, K, N, iteration, context)
+function [lambda_first_diff, lambda_second_diff, context] = ...
+						adaptiveSubgradient(labels_first, labels_second, lowerBound, ...
+						best_dual_energy, K, N, iteration, context)
 	 % Adaptive projected subgradient step computation
 	gamma0 = 1.5;
 	gamma1 = 0.5;

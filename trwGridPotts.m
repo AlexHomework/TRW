@@ -1,20 +1,20 @@
-function [labels, energy, lowerBound, time] = trwGridPotts(unary, vertC, horC)
+function [labels, energy, lowerBound, time] = trwGridPotts(unary, vertC, horC, dualStep, init_context)
 [K, N, M] = size(unary);
 dual_unary = unary / 2;
 
 f1 = @(lambda) horizontalChains(lambda, unary, dual_unary, vertC, horC);
 f2 = @(lambda) verticalChains(lambda, unary, dual_unary, vertC, horC);
-[labels, energy, lowerBound, time] = dualDecomposition(K, N * M, f1, f2, @adaptiveSubgradient);
+[labels, energy, lowerBound, time] = dualDecomposition(K, N * M, f1, f2, dualStep, init_context);
 labels = reshape(labels, N, M);
 
-showImage(labels);
+% showImage(labels);
 
-figure;
-plot(energy);
-hold on;
-plot(lowerBound, 'r');
-figure;
-plot(time);
+% figure;
+% plot(energy);
+% hold on;
+% plot(lowerBound, 'r');
+% figure;
+% plot(time);
 
 end
 

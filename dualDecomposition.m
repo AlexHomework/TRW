@@ -1,4 +1,4 @@
-function [labels, energy, lowerBound, time] = dualDecomposition(K, N, f1, f2, dualStep)
+function [labels, energy, lowerBound, time] = dualDecomposition(K, N, f1, f2, dualStep, init_context)
 	% Whole dual problem is to find
 	% min f1'(x1, \theta1) + min f2'(x2, \theta2)
 	% subject to x1 = x2
@@ -19,7 +19,7 @@ function [labels, energy, lowerBound, time] = dualDecomposition(K, N, f1, f2, du
 	energy = [];
 	best_dual_energy = 0;
 	time = [];
-	context = struct();
+	context = init_context;
 	t = cputime;
 	for iteration = 1:10
 		% Y minimization

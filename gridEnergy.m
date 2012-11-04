@@ -1,7 +1,7 @@
 function [energy] = gridEnergy(unary, vertC, horC, y)
 	[K, N, M] = size(unary);
 	% It's tricky vectorised equivalent to the code below
-	energy = sum(unary(y(:) + K * (0 : N*M - 1)'));
+	energy = sum(unary(int32(y(:)) + int32(K * (0 : N*M - 1)')));
 	energy = energy + (y(1 : N*(M - 1)) ~= y(N+1 : end)) * horC(:);
 	y_w_f = y(2:end, :); % y without first row
 	y_w_l = y(1:N-1, :); % y without last row

@@ -18,5 +18,7 @@ for p = 1:K
 end
 
 
-vertC = alpha * exp(-abs(left(1 : N-1, :, 1) - left(2 : N, :, 1)) / s);
-horC = alpha * exp(-abs(left(:, 1 : M-1, 1) - left(:, 2 : M, 1)) / s);
+% vertC = alpha * exp(-abs(left(1 : N-1, :, 1) - left(2 : N, :, 1)) / s);
+% horC = alpha * exp(-abs(left(:, 1 : M-1, 1) - left(:, 2 : M, 1)) / s);
+vertC = 20 * ones(N - 1, M);
+horC = 20 * ones(N, M - 1);

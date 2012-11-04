@@ -1,7 +1,7 @@
 function [lambda_first_diff, lambda_second_diff, context] = ...
 					constantSubgradient(labels_first, labels_second, ...
 					lowerBound, best_dual_energy, K, N, iteration, context)
-	alpha_n = 1;
+	alpha_n = context.step;
 
 	% Lambda projected subgradient maximization
 	for p = 1:K

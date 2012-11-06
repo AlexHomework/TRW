@@ -1,4 +1,4 @@
-function [lambda_first_diff, lambda_second_diff, context] = ...
+function [first_diff, context, alpha_n] = ...
 						adaptiveSubgradient(labels_first, labels_second, lowerBound, ...
 						best_dual_energy, K, N, iteration, context)
 	 % Adaptive projected subgradient step computation
@@ -20,11 +20,9 @@ function [lambda_first_diff, lambda_second_diff, context] = ...
 	alpha_n = best_dual_energy + delta - lowerBound(iteration);
 	alpha_n = alpha_n / sum(sum(labels_first ~= labels_second));
 
-	lambda_first_diff = zeros(K, N);
-	lambda_second_diff = zeros(K, N);
+	first_diff = zeros(K, N);
 	% Lambda projected subgradient maximization
 	for p = 1:K
-		lambda_first_diff(p, :) = alpha_n * reshape(((labels_first == p) - (labels_second == p)), 1, N);
-		lambda_second_diff(p, :) = alpha_n * reshape(((labels_second == p) - (labels_first == p)), 1, N);
+		first_diff(p, :) = alpha_n * reshape(((labels_first == p) - (labels_second == p)), 1, N);
 	end
 end

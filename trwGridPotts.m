@@ -1,20 +1,22 @@
-function [labels, energy, lowerBound, time] = trwGridPotts(unary, vertC, horC, dualStep, init_context)
-[K, N, M] = size(unary);
-dual_unary = unary / 2;
+function [labels, energy, lowerBound, time, step] = trwGridPotts(unary, vertC, horC, dualStep, ...
+												init_context, varargin)
+	[K, N, M] = size(unary);
+	dual_unary = unary / 2;
 
-f1 = @(lambda) horizontalChains(lambda, unary, dual_unary, vertC, horC);
-f2 = @(lambda) verticalChains(lambda, unary, dual_unary, vertC, horC);
-[labels, energy, lowerBound, time] = dualDecomposition(K, N * M, f1, f2, dualStep, init_context);
-labels = reshape(labels, N, M);
 
-% showImage(labels);
+	if length(varargin) > 0 && strcmp(varargin{1}, 'random_init')
+		% Generate random lambda initialization
+		max_dual = max(dual_unary(:));
+		lambda = randi(ceil(max_dual / 30), K, N * M);
+	else
+		lambda = [];
+	end
 
-% figure;
-% plot(energy);
-% hold on;
-% plot(lowerBound, 'r');
-% figure;
-% plot(time);
+	f1 = @(lambda) horizontalChains(lambda, unary, dual_unary, vertC, horC);
+	f2 = @(lambda) verticalChains(lambda, unary, dual_unary, vertC, horC);
+	[labels, energy, lowerBound, time, step] = dualDecomposition(K, N * M, f1, f2, dualStep, ...
+													init_context, 'lambda', lambda);
+	labels = reshape(labels, N, M);
 
 end
 

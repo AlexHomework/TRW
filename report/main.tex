@@ -5,8 +5,8 @@
 \usepackage{graphicx}
 \usepackage{caption}
 \usepackage{subcaption}
-\usepackage{color}
-\usepackage{hyperref}
+% \usepackage{color}
+% \usepackage{hyperref}
 \usepackage{amssymb}
 \usepackage{amsmath}
 
@@ -52,9 +52,14 @@ state-of-the-art подходов к этой задаче.
 \section{Субградиентный подъём}
 Результаты работы данного метода зависят от выбора
 последовательности шагов $\alpha_t$.
-После 80 итераций всё вариации метода сошлись к
-примерно одной и той же (на глаз) разметке.\\
-Использовался константный и адаптивный шаг.
+Использовался константный и адаптивный шаг.\\
+Адаптивный подход нашел глобальный минимум,
+показав результат лучше чем $\alpha$--расширение,
+но работал примерно в $60$ раз дольше.
+Использование константного подхода показывает
+примерно одинаковые результаты для разных констант
+из хорошего диапазона. Если не угадать с константой,
+то метод либо разойдётся, либо будет сходится слишком медленно.
 В случае адаптивного шага использовалась следующая формула:\\
 $\alpha_t = \frac{Approx_t - Dual_t}{\left \| \Delta \overrightarrow{g_t} \right \|^2}$\\
 Где $Dual_t$~--- текущее значение двойственной функции, 
@@ -71,36 +76,38 @@ $\gamma_0$, $\gamma_1$, $\epsilon$~--- параметры метода, выбр
 $\gamma_0 = 1.5$\\
 $\gamma_1 = 0.5$\\
 $\epsilon_t = \frac{1}{t}$\\
+
+На графиках приведены примеры работы алгоритмов (в том числе
+длинны шагов, выбранных адаптивным методом) на стереопаре Tsukuba.
 \begin{figure}
     \centering
-    \begin{subfigure}[t]{0.7\textwidth}
+    \begin{subfigure}[t]{\textwidth}
             \centering
-            \includegraphics[width=\textwidth]{constant_0_1_convergence.eps}
-            \caption{$\alpha_t = 0.1$}
+            \includegraphics[width=\textwidth]{comparative.eps}
+            \caption{Сравнение скорости и качества работы различных методов.
+                    Для $\alpha$--расширения указанна только прямая энергия,
+                    для остальных алгоритмов указанна прямая и двойственная энергия.}
     \end{subfigure}
-    \begin{subfigure}[t]{0.7\textwidth}
+    \begin{subfigure}[t]{\textwidth}
             \centering
-            \includegraphics[width=\textwidth]{constant_0_3_convergence.eps}
-            \caption{$\alpha_t = 0.3$}
-    \end{subfigure}
-    \begin{subfigure}[t]{0.7\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{constant_1_convergence.eps}
-            \caption{$\alpha_t = 1$}
-    \end{subfigure}
-    \begin{subfigure}[t]{0.7\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{adaptive_convergence.eps}
-            \caption{Адаптивный шаг}
+            \includegraphics[width=\textwidth]{adaptive_step.eps}
+            \caption{Длинна шага выбранная на каждой итерации адаптивным методом}
     \end{subfigure}
 \end{figure}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{adaptive_result.eps}
-\caption{Итоговая разметка}
+\begin{figure}
+    \centering
+    \begin{subfigure}[t]{\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{adaptive_result.eps}
+            \caption{Итоговая разметка выбранная наилучшим методом (адаптивным)}
+    \end{subfigure}
+    \begin{subfigure}[t]{\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{constant_0_1_result.eps}
+            \caption{Разметка выбранная константным методом с длинной шага $0.1$}
+    \end{subfigure}
 \end{figure}
-\pagebreak
 
 
 \begin{thebibliography}{1}

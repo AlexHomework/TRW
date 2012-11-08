@@ -1,4 +1,4 @@
-function compare(unary, vertC, horC)
+function comparativePlot(unary, vertC, horC)
 	% Compare different optimization methods and draw aggregate plot
 	figure;
 	hold all;

@@ -50,7 +50,15 @@ function comparativePlot(unary, vertC, horC)
 	legend_names{plot_num} = 'Adaptive';
 	plot_num = plot_num + 1;
 
+
 	X = [1:length(energy)];
+	[labels, energy, lowerBound, time] = TRW_S(unary, vertC, horC);
+	p = plot(X, double(energy) * ones(size(X)));
+	plot_arr = [plot_arr, p];
+	plot(X, double(lowerBound) * ones(size(X)), 'Color', get(p,'Color'));
+	legend_names{plot_num} = 'TRW-S';
+	plot_num = plot_num + 1;
+
 	[labels, energy, time] = alphaExpansion(unary, vertC, horC);
 	plot_arr = [plot_arr, plot(X, double(energy) * ones(size(X)))];
 	legend_names{plot_num} = 'Alpha expansion';

@@ -25,7 +25,8 @@
 % 					printIter	:	and print every printIter iterations (double) default: 5
 % 
 % OUTPUT: 
-% 	S		- labeling that has energy E, vector numNodes * 1 of type double (indeces are in [1,...,numLabels])% 	E		- The best found energy of type double
-% 	LB		- maximum value of lower bound of type double (only for TRW-S method)
+% 	S		- Labeling that has energy E, vector numNodes * 1 of type double (indeces are in [1,...,numLabels])
+% 	E		- Energy #iter * 1 matrix of type double
+% 	LB		- Lower bound #iter * 1 matrix of type double (only for TRW-S method)
 %
 % by Anton Osokin (firstname.lastname@gmail.com), 2011

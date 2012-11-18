@@ -4,8 +4,7 @@
 #include <assert.h>
 #include "MRFEnergy.h"
 
-
-template <class T> int MRFEnergy<T>::Minimize_TRW_S(Options& options, REAL& lowerBound, REAL& energy, REAL* min_marginals)
+template <class T> int MRFEnergy<T>::Minimize_TRW_S(Options& options, std::vector<REAL> &lowerBound_arr, std::vector<REAL> &energy_arr, REAL* min_marginals)
 {
 	Node* i;
 	Node* j;
@@ -75,7 +74,7 @@ template <class T> int MRFEnergy<T>::Minimize_TRW_S(Options& options, REAL& lowe
 		////////////////////////////////////////////////
 		//               backward pass                //
 		////////////////////////////////////////////////
-		lowerBound = 0;
+		REAL lowerBound = 0;
 
 		for (i=m_nodeLast; i; i=i->m_prev)
 		{
@@ -118,13 +117,18 @@ template <class T> int MRFEnergy<T>::Minimize_TRW_S(Options& options, REAL& lowe
 		//          check stopping criterion          //
 		////////////////////////////////////////////////
 
+
+		// Add lower bound and energy to output array
+		lowerBound_arr.push_back(lowerBound);
+		energy_arr.push_back(ComputeSolutionAndEnergy());
+
 		// print lower bound and energy, if necessary
 		if (  lastIter || 
 			( iter>=options.m_printMinIter && 
 			(options.m_printIter<1 || iter%options.m_printIter==0) )
 		)
 		{
-			energy = ComputeSolutionAndEnergy();
+			REAL energy = ComputeSolutionAndEnergy();
 			printf("iter %d: lower bound = %f, energy = %f\n", iter, lowerBound, energy);
 		}
 
@@ -144,7 +148,17 @@ template <class T> int MRFEnergy<T>::Minimize_TRW_S(Options& options, REAL& lowe
 	return iter;
 }
 
-template <class T> int MRFEnergy<T>::Minimize_BP(Options& options, REAL& energy, REAL* min_marginals)
+template <class T> int MRFEnergy<T>::Minimize_TRW_S(Options& options, REAL& lowerBound, REAL& energy, REAL* min_marginals)
+{
+	std::vector<REAL> lowerBound_arr, energy_arr;
+	int iter = Minimize_TRW_S(options, lowerBound_arr, energy_arr, min_marginals);
+	lowerBound = lowerBound_arr[lowerBound_arr.size() - 1];
+	energy = energy_arr[energy_arr.size() - 1];
+	return iter;
+}
+
+
+template <class T> int MRFEnergy<T>::Minimize_BP(Options& options, std::vector<REAL> &energy_arr, REAL* min_marginals)
 {
 	Node* i;
 	Node* j;
@@ -245,13 +259,15 @@ template <class T> int MRFEnergy<T>::Minimize_BP(Options& options, REAL& energy,
 		//          check stopping criterion          //
 		////////////////////////////////////////////////
 
+		// Add energy to output array
+		energy_arr.push_back(ComputeSolutionAndEnergy());
 		// print energy, if necessary
 		if ( lastIter || 
 			( iter>=options.m_printMinIter && 
 			(options.m_printIter<1 || iter%options.m_printIter==0) )
 		)
 		{
-			energy = ComputeSolutionAndEnergy();
+			REAL energy = ComputeSolutionAndEnergy();
 			printf("iter %d: energy = %f\n", iter, energy);
 		}
 
@@ -259,6 +275,14 @@ template <class T> int MRFEnergy<T>::Minimize_BP(Options& options, REAL& energy,
 		if (lastIter) break;
 	}
 
+	return iter;
+}
+
+template <class T> int MRFEnergy<T>::Minimize_BP(Options& options, REAL& energy, REAL* min_marginals)
+{
+	std::vector<REAL> energy_arr;
+	int iter = Minimize_BP(options, energy_arr, min_marginals);
+	energy = energy_arr[energy_arr.size() - 1];
 	return iter;
 }
 

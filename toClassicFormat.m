@@ -1,7 +1,4 @@
 function [dataCost, neighbors, metric] = toClassicFormat(unary, vertC, horC)
-	% Return alpha expansion object
-	addpath('gco-v3.0/matlab');
-
 	[K, N, M] = size(unary);
 	dataCost = reshape(unary, K, N * M);
 

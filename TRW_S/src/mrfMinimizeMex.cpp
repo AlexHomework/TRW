@@ -25,9 +25,9 @@
 //					printIter	:	and print every printIter iterations (double) default: 5
 //
 //OUTPUT: 
-//	S		- labeling that has energy E, vector numNodes * 1 of type double (indeces are in [1,...,numLabels])
-//	E		- The best found energy of type double
-//	LB		- maximum value of lower bound of type double (only for TRW-S method)
+//	S		- Labeling that has energy E, vector numNodes * 1 of type double (indeces are in [1,...,numLabels])
+// 	E		- Energy #iter * 1 matrix of type double
+// 	LB		- Lower bound #iter * 1 matrix of type double (only for TRW-S method)
 // 
 //  by Anton Osokin (firstname.lastname@gmail.com), 2011
 
@@ -174,7 +174,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	//create MRF object
 	MRFEnergy<TypeGeneral>* mrf;
 	MRFEnergy<TypeGeneral>::NodeId* nodes;
-	TypeGeneral::REAL energy, lowerBound;
+	std::vector<TypeGeneral::REAL> energy, lowerBound;
 	
 	TypeGeneral::REAL *D = new TypeGeneral::REAL[numLabels];
 	TypeGeneral::REAL *P = new TypeGeneral::REAL[numLabels * numLabels];
@@ -242,16 +242,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		//mrf->SetAutomaticOrdering();
 
 		mrf->Minimize_BP(options, energy);
-		lowerBound = std::numeric_limits<double>::signaling_NaN();
+		// lowerBound = std::numeric_limits<double>::signaling_NaN();
 
 		if(verbosityLevel >= 1)
 			printf("BP finished. Time: %f\n", (clock() - tStart) * 1.0 / CLOCKS_PER_SEC);
 	}
 
-	//output the best energy value
+	//output the energy values array
 	if(eOutPtr != NULL)	{
-		*eOutPtr = mxCreateNumericMatrix(1, 1, mxDOUBLE_CLASS, mxREAL);
-		*(double*)mxGetData(*eOutPtr) = (double)energy;
+		*eOutPtr = mxCreateNumericMatrix(energy.size(), 1, mxDOUBLE_CLASS, mxREAL);
+		double* segment = (double*)mxGetData(*eOutPtr);
+		for(int i = 0; i < energy.size(); ++i)
+			segment[i] = (double)(energy[i]) + 1;
 	}
 
 	//output the best solution
@@ -262,10 +264,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 			segment[i] = (double)(mrf -> GetSolution(nodes[i])) + 1;
 	}
 
-	//output the best lower bound
+	//output the lower bound array
 	if(lbOutPtr != NULL)	{
-		*lbOutPtr = mxCreateNumericMatrix(1, 1, mxDOUBLE_CLASS, mxREAL);
-		*(double*)mxGetData(*lbOutPtr) = (double)lowerBound;
+		*lbOutPtr = mxCreateNumericMatrix(lowerBound.size(), 1, mxDOUBLE_CLASS, mxREAL);
+		double* segment = (double*)mxGetData(*lbOutPtr);
+		for(int i = 0; i < lowerBound.size(); ++i)
+			segment[i] = (double)(lowerBound[i]) + 1;
 	}
 
 	// done

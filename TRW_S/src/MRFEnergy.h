@@ -9,6 +9,7 @@ vnk@microsoft.com
 #define __MRFENERGY_H__
 
 #ifdef MATLAB_MEX_FILE
+#include <vector>
 #include <mex.h>
 #endif
 
@@ -116,9 +117,11 @@ public:
 	// sets this array accordingly. (The size of the array depends on the type
 	// used. Normally, it's (# nodes)*(# labels). Exception: for TypeBinaryFast it's (# nodes).
 	int Minimize_TRW_S(Options& options, REAL& lowerBound, REAL& energy, REAL* min_marginals = NULL);
+	int Minimize_TRW_S(Options& options, std::vector<REAL> &lowerBound_arr, std::vector<REAL> &energy_arr, REAL* min_marginals = NULL);
 
 	// Returns number of iterations. Sets energy.
 	int Minimize_BP(Options& options, REAL& energy, REAL* min_marginals = NULL);
+	int Minimize_BP(Options& options, std::vector<REAL> &energy_arr, REAL* min_marginals = NULL);
 
 	// Returns an integer in [0,Ki). Can be called only after Minimize().
 	Label GetSolution(NodeId i);

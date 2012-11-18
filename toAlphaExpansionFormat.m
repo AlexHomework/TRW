@@ -1,6 +1,6 @@
 function h = toAlphaExpansionFormat(unary, vertC, horC)
 	% Return alpha expansion object
-	addpath('gco-v3.0/matlab');
+	addpath('alpha_expansion/matlab');
 
 	[K, N, M] = size(unary);
 	[dataCost, neighbors, metric] = toClassicFormat(unary, vertC, horC);

@@ -1,7 +1,7 @@
 function sensitivityPlot(unary, vertC, horC, dualStep, init_context)
 	% Plot energy versus iteration for different random initial lambda
 
-	% Count of optimizations from random start
+	% Count of random start runs
 	N = 5;
 
 	figure;

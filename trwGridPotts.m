@@ -6,8 +6,7 @@ function [labels, energy, lowerBound, time, step] = trwGridPotts(unary, vertC, h
 
 	if length(varargin) > 0 && strcmp(varargin{1}, 'random_init')
 		% Generate random lambda initialization
-		max_dual = max(dual_unary(:));
-		lambda = randi(ceil(max_dual / 30), K, N * M);
+		lambda = randn(K, N * M) / 2;
 	else
 		lambda = [];
 	end

@@ -1,7 +1,5 @@
 function [localEnergy, labels] = minimizeHorChains(unary, horC)
 	[K, N, M] = size(unary);
-	labels = zeros(N, M);
-	localEnergy = 0;
 
 	rep_K = ones(1, K); % we will use this matrix as index inspite of using repmat
 	rep_N = ones(1, N);

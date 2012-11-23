@@ -4,7 +4,7 @@
 #include <assert.h>
 #include "MRFEnergy.h"
 
-template <class T> int MRFEnergy<T>::Minimize_TRW_S(Options& options, std::vector<REAL> &lowerBound_arr, std::vector<REAL> &energy_arr, REAL* min_marginals)
+template <class T> int MRFEnergy<T>::Minimize_TRW_S(Options& options, std::vector<REAL> &lowerBound_arr, std::vector<REAL> &energy_arr, std::vector<clock_t> &time_arr, REAL* min_marginals)
 {
 	Node* i;
 	Node* j;
@@ -12,6 +12,7 @@ template <class T> int MRFEnergy<T>::Minimize_TRW_S(Options& options, std::vecto
 	REAL vMin;
 	int iter;
 	REAL lowerBoundPrev;
+	clock_t tStart = clock();
 
 	if (!m_isEnergyConstructionCompleted)
 	{
@@ -118,9 +119,10 @@ template <class T> int MRFEnergy<T>::Minimize_TRW_S(Options& options, std::vecto
 		////////////////////////////////////////////////
 
 
-		// Add lower bound and energy to output array
+		// Add lower bound, energy and time to output array
 		lowerBound_arr.push_back(lowerBound);
 		energy_arr.push_back(ComputeSolutionAndEnergy());
+		time_arr.push_back((clock() - tStart) * 1.0 / CLOCKS_PER_SEC);
 
 		// print lower bound and energy, if necessary
 		if (  lastIter || 
@@ -148,6 +150,12 @@ template <class T> int MRFEnergy<T>::Minimize_TRW_S(Options& options, std::vecto
 	return iter;
 }
 
+template <class T> int MRFEnergy<T>::Minimize_TRW_S(Options& options, std::vector<REAL> &lowerBound_arr, std::vector<REAL> &energy_arr, REAL* min_marginals)
+{
+	std::vector<clock_t> time_arr;
+	return Minimize_TRW_S(options, lowerBound_arr, energy_arr, time_arr, min_marginals);
+}
+
 template <class T> int MRFEnergy<T>::Minimize_TRW_S(Options& options, REAL& lowerBound, REAL& energy, REAL* min_marginals)
 {
 	std::vector<REAL> lowerBound_arr, energy_arr;
@@ -158,13 +166,14 @@ template <class T> int MRFEnergy<T>::Minimize_TRW_S(Options& options, REAL& lowe
 }
 
 
-template <class T> int MRFEnergy<T>::Minimize_BP(Options& options, std::vector<REAL> &energy_arr, REAL* min_marginals)
+template <class T> int MRFEnergy<T>::Minimize_BP(Options& options, std::vector<REAL> &energy_arr, std::vector<clock_t> &time_arr, REAL* min_marginals)
 {
 	Node* i;
 	Node* j;
 	MRFEdge* e;
 	REAL vMin;
 	int iter;
+	clock_t tStart = clock();
 
 	if (!m_isEnergyConstructionCompleted)
 	{
@@ -259,8 +268,9 @@ template <class T> int MRFEnergy<T>::Minimize_BP(Options& options, std::vector<R
 		//          check stopping criterion          //
 		////////////////////////////////////////////////
 
-		// Add energy to output array
+		// Add energy and time to output array
 		energy_arr.push_back(ComputeSolutionAndEnergy());
+		time_arr.push_back((clock() - tStart) * 1.0 / CLOCKS_PER_SEC);
 		// print energy, if necessary
 		if ( lastIter || 
 			( iter>=options.m_printMinIter && 
@@ -276,6 +286,12 @@ template <class T> int MRFEnergy<T>::Minimize_BP(Options& options, std::vector<R
 	}
 
 	return iter;
+}
+
+template <class T> int MRFEnergy<T>::Minimize_BP(Options& options, std::vector<REAL> &energy_arr, REAL* min_marginals)
+{
+	std::vector<clock_t> time_arr;
+	return Minimize_BP(options, energy_arr, time_arr, min_marginals);
 }
 
 template <class T> int MRFEnergy<T>::Minimize_BP(Options& options, REAL& energy, REAL* min_marginals)

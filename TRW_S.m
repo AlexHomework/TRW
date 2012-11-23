@@ -3,8 +3,6 @@ function [labels, energy, lowerBound, time] = TRW_S(unary, vertC, horC)
 
 	[K, N, M] = size(unary);
 	[dataCost, neighbors, metric] = toClassicFormat(unary, vertC, horC);
-	t = cputime;
-	[labels, energy, lowerBound] = mrfMinimizeMex(dataCost, neighbors, metric);
-	time = cputime - t;
+	[labels, energy, lowerBound, time] = mrfMinimizeMex(dataCost, neighbors, metric, struct('funcEps', -1, 'maxIter', 500));
 	labels = reshape(labels, N, M);
 end

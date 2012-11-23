@@ -63,6 +63,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	mxArray **eOutPtr = (nlhs > 1) ? &plhs[1] : NULL; //energy
 	mxArray **sOutPtr = (nlhs > 0) ? &plhs[0] : NULL; //solution
 	mxArray **lbOutPtr = (nlhs > 2) ? &plhs[2] : NULL; //lowerbound
+	mxArray **tOutPtr = (nlhs > 3) ? &plhs[3] : NULL; //time array
 
 	//prepare default options
 	MRFEnergy<TypeGeneral>::Options options;
@@ -175,6 +176,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	MRFEnergy<TypeGeneral>* mrf;
 	MRFEnergy<TypeGeneral>::NodeId* nodes;
 	std::vector<TypeGeneral::REAL> energy, lowerBound;
+	std::vector<clock_t> time_arr;
 	
 	TypeGeneral::REAL *D = new TypeGeneral::REAL[numLabels];
 	TypeGeneral::REAL *P = new TypeGeneral::REAL[numLabels * numLabels];
@@ -231,7 +233,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		// Function below is optional - it may help if, for example, nodes are added in a random order
 		mrf->SetAutomaticOrdering();
 
-		mrf->Minimize_TRW_S(options, lowerBound, energy);
+		mrf->Minimize_TRW_S(options, lowerBound, energy, time_arr);
 
 		if(verbosityLevel >= 1)
 			printf("TRW-S finished. Time: %f\n", (clock() - tStart) * 1.0 / CLOCKS_PER_SEC);
@@ -241,7 +243,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		// Function below is optional - it may help if, for example, nodes are added in a random order
 		//mrf->SetAutomaticOrdering();
 
-		mrf->Minimize_BP(options, energy);
+		mrf->Minimize_BP(options, energy, time_arr);
 		// lowerBound = std::numeric_limits<double>::signaling_NaN();
 
 		if(verbosityLevel >= 1)
@@ -253,7 +255,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		*eOutPtr = mxCreateNumericMatrix(energy.size(), 1, mxDOUBLE_CLASS, mxREAL);
 		double* segment = (double*)mxGetData(*eOutPtr);
 		for(int i = 0; i < energy.size(); ++i)
-			segment[i] = (double)(energy[i]) + 1;
+			segment[i] = (double)(energy[i]);
 	}
 
 	//output the best solution
@@ -269,7 +271,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		*lbOutPtr = mxCreateNumericMatrix(lowerBound.size(), 1, mxDOUBLE_CLASS, mxREAL);
 		double* segment = (double*)mxGetData(*lbOutPtr);
 		for(int i = 0; i < lowerBound.size(); ++i)
-			segment[i] = (double)(lowerBound[i]) + 1;
+			segment[i] = (double)(lowerBound[i]);
+	}
+
+	//output the lower bound array
+	if(tOutPtr != NULL)	{
+		*tOutPtr = mxCreateNumericMatrix(time_arr.size(), 1, mxDOUBLE_CLASS, mxREAL);
+		double* segment = (double*)mxGetData(*tOutPtr);
+		for(int i = 0; i < time_arr.size(); ++i)
+			segment[i] = (double)(time_arr[i]);
 	}
 
 	// done

@@ -1,7 +1,5 @@
 function [localEnergy, labels] = minimizeVertChains(unary, vertC)
 	[K, N, M] = size(unary);
-	labels = zeros(N, M);
-	localEnergy = 0;
 
 	rep_K = ones(1, K); % we will use this matrix as index inspite of using repmat
 	rep_M = ones(1, M);

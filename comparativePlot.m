@@ -1,5 +1,9 @@
-function comparativePlot(unary, vertC, horC)
+function comparativePlot(name)
 	% Compare different optimization methods and draw aggregate plot
+
+	[unary, vertC, horC] = potentials(name);
+
+
 	energy = cell(1);
 	lowerBound = cell(1);
 	time = cell(1);
@@ -11,10 +15,6 @@ function comparativePlot(unary, vertC, horC)
 	energy{plot_num} = curr_energy;
 	lowerBound{plot_num} = curr_lowerBound;
 	time{plot_num} = curr_time;
-	% X = [1:length(energy)];
-	% p = plot(X, energy);
-	% plot_arr = [plot_arr, p];
-	% plot(X, lowerBound, 'Color', get(p,'Color'));
 	legend_names{plot_num} = 'Constant with step = 0.01';
 	plot_num = plot_num + 1;
 
@@ -24,10 +24,6 @@ function comparativePlot(unary, vertC, horC)
 	energy{plot_num} = curr_energy;
 	lowerBound{plot_num} = curr_lowerBound;
 	time{plot_num} = curr_time;
-	% X = [1:length(energy)];
-	% p = plot(X, energy);
-	% plot_arr = [plot_arr, p];
-	% plot(X, lowerBound, 'Color', get(p,'Color'));
 	legend_names{plot_num} = 'Constant with step = 0.1';
 	plot_num = plot_num + 1;
 
@@ -36,10 +32,6 @@ function comparativePlot(unary, vertC, horC)
 	energy{plot_num} = curr_energy;
 	lowerBound{plot_num} = curr_lowerBound;
 	time{plot_num} = curr_time;
-	% X = [1:length(energy)];
-	% p = plot(X, energy);
-	% plot_arr = [plot_arr, p];
-	% plot(X, lowerBound, 'Color', get(p,'Color'));
 	legend_names{plot_num} = 'Constant with step = 1';
 	plot_num = plot_num + 1;
 
@@ -48,10 +40,6 @@ function comparativePlot(unary, vertC, horC)
 	energy{plot_num} = curr_energy;
 	lowerBound{plot_num} = curr_lowerBound;
 	time{plot_num} = curr_time;
-	% X = [1:length(energy)];
-	% p = plot(X, energy);
-	% plot_arr = [plot_arr, p];
-	% plot(X, lowerBound, 'Color', get(p,'Color'));
 	legend_names{plot_num} = 'Constant with step = 3';
 	plot_num = plot_num + 1;
 
@@ -59,10 +47,6 @@ function comparativePlot(unary, vertC, horC)
 	energy{plot_num} = curr_energy;
 	lowerBound{plot_num} = curr_lowerBound;
 	time{plot_num} = curr_time;
-	% X = [1:length(energy)];
-	% p = plot(X, energy);
-	% plot_arr = [plot_arr, p];
-	% plot(X, lowerBound, 'Color', get(p,'Color'));
 	legend_names{plot_num} = 'Adaptive';
 	plot_num = plot_num + 1;
 
@@ -70,7 +54,6 @@ function comparativePlot(unary, vertC, horC)
 	energy{plot_num} = curr_energy;
 	lowerBound{plot_num} = curr_energy;
 	time{plot_num} = curr_time;
-	% plot_arr = [plot_arr, plot(X, double(energy) * ones(size(X)))];
 	legend_names{plot_num} = 'Alpha expansion';
 	plot_num = plot_num + 1;
 
@@ -79,12 +62,11 @@ function comparativePlot(unary, vertC, horC)
 	energy{plot_num} = curr_energy;
 	lowerBound{plot_num} = curr_lowerBound;
 	time{plot_num} = curr_time;
-	% X = [1:length(energy)];
-	% p = plot(X, energy);
-	% plot_arr = [plot_arr, p];
-	% plot(X, lowerBound, 'Color', get(p,'Color'));
 	legend_names{plot_num} = 'TRW-S';
 	plot_num = plot_num + 1;
+	% Set ylimits for small plot
+	small_upper = curr_energy(5);
+	small_lower = curr_lowerBound(5);
 
 
 
@@ -102,7 +84,7 @@ function comparativePlot(unary, vertC, horC)
 	end
 
 
-	figure;
+	fig_handle = figure;
 	hold all;
 	plot_arr = [];
 	for i = 1:plot_num - 1
@@ -112,34 +94,44 @@ function comparativePlot(unary, vertC, horC)
 		curr_time = [curr_time; add];
 		curr_energy = [energy{i}; energy{i}(end) * ones(length(add), 1)];
 		p = plot(curr_time, curr_energy);
+		plotProperties(p);
 		plot_arr = [plot_arr, p];
 		curr_lowerBound = [lowerBound{i}; lowerBound{i}(end) * ones(length(add), 1)];
-		plot(curr_time, curr_lowerBound, 'Color', get(p,'Color'));
+		p = plot(curr_time, curr_lowerBound, 'Color', get(p,'Color'));
+		plotProperties(p);
 	end
 	
-	legend(plot_arr, legend_names);
-	xlabel('Time')
-	ylabel('Energy')
+
+	hLegend = legend(plot_arr, legend_names);
+	hTitle = title('Comparative plot');
+	hXLabel = xlabel('Time (sec)');
+	hYLabel = ylabel('Energy');
+	set( gca                       , ...
+	    'FontName'   , 'Helvetica' );
+	set([hTitle, hXLabel, hYLabel], ...
+	    'FontName'   , 'AvantGarde');
+	set([hLegend]                 , ...
+	    'FontSize'   , 11          );
+	set([hXLabel, hYLabel]  , ...
+	    'FontSize'   , 10          );
+	set( hTitle                    , ...
+	    'FontSize'   , 12          , ...
+	    'FontWeight' , 'bold'      );
 	hold off;
 
-	% % Iteration/energy plot
-	% figure;
-	% hold all;
-	% plot_arr = [];
-	% for i = 1:plot_num - 1
-	% 	curr_X = [1:length(energy{i})];
-	% 	add = (length(energy{i}) + 1) : max_iter;
-	% 	curr_X = [curr_X, add];
-	% 	curr_X = reshape(curr_X, length(curr_X), 1);
-	% 	curr_energy = [energy{i}; energy{i}(end) * ones(length(add), 1)];
-	% 	p = plot(curr_X, curr_energy);
-	% 	plot_arr = [plot_arr, p];
-	% 	curr_lowerBound = [lowerBound{i}; lowerBound{i}(end) * ones(length(add), 1)];
-	% 	plot(curr_X, curr_lowerBound, 'Color', get(p,'Color'));
-	% end
 
-	% legend(plot_arr, legend_names);
-	% xlabel('Iteration')
-	% ylabel('Energy')
-	% hold off;
+	out_filename = strcat('plots/comparative_', name);
+	set(gcf, 'PaperPositionMode', 'auto');
+	print('-depsc2', strcat(out_filename, '.eps'));
+	saveas(fig_handle, out_filename,'fig');
+
+	out_filename = strcat(out_filename, '_small');
+	ylim([small_lower, small_upper]);
+	print('-depsc2', strcat(out_filename, '.eps'));
+	saveas(fig_handle, out_filename,'fig');
+	close;
+end
+
+function plotProperties(p)
+	set(p, 'LineWidth', 1.5);
 end

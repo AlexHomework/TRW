@@ -1,6 +1,5 @@
-function [unary] = read_unary(name, N, M)
+function [unary] = readUnary(filename, N, M)
 	% Read data file in Alahari format
-	filename = strcat('data/', name);
 	
 	file_id = fopen(filename, 'r');
 	unary = fscanf(file_id, '%d');

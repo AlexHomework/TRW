@@ -12,10 +12,10 @@ function [energy] = gridEnergy(unary, vertC, horC, y)
 	% 	for j = 1:M
 	% 		energy = energy + unary(y(i, j), i, j);
 	% 		% Edges
-	% 		if j > 1 && y(i, j - 1) ~= y(i, j)
+	% 		if j > 1 & y(i, j - 1) ~= y(i, j)
 	% 			energy = energy + horC(i, j - 1);
 	% 		end
-	% 		if i > 1 && y(i - 1, j) ~= y(i, j)
+	% 		if i > 1 & y(i - 1, j) ~= y(i, j)
 	% 			energy = energy + vertC(i - 1, j);
 	% 		end
 	% 	end

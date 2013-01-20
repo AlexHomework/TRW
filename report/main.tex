@@ -5,8 +5,6 @@
 \usepackage{graphicx}
 \usepackage{caption}
 \usepackage{subcaption}
-% \usepackage{color}
-% \usepackage{hyperref}
 \usepackage{amssymb}
 \usepackage{amsmath}
 
@@ -25,7 +23,7 @@
 Марковские сети применяются практически повсюду.
 После обучение сети нужно её использовать,
 то есть решать задачу максимизации апостериорной вероятности.
-Для большинства реальных задач эта задача NP-сложная.\\
+Для большинства реальных задач эта задача NP--трудная.\\
 В данной статье проводится обзор существующих
 state-of-the-art подходов к этой задаче.
 \pagebreak
@@ -34,7 +32,7 @@ state-of-the-art подходов к этой задаче.
 Мы остановились на подклассе алгоритмов использующих
 двойственное разложение. В них задача минимазации
 исходной энергии сводится к задаче максимизации
-двойственной энергии (это всегда строго выпулая функция).
+двойственной энергии (это функция всегда выпула вверх).
 Алгоритмы этой группы отличает конкретный метод максимизации.
 \begin{itemize}
 \item Субградиентный подъём~\cite{Subgradient}
@@ -52,7 +50,8 @@ state-of-the-art подходов к этой задаче.
 \section{Субградиентный подъём}
 Результаты работы данного метода зависят от выбора
 последовательности шагов $\alpha_t$.
-Использовался константный и адаптивный шаг.\\
+Использовался константный, адаптивный шаг и неточная
+одномерная оптимизация по величине шага.\\
 Адаптивный подход нашел глобальный минимум,
 показав результат лучше чем $\alpha$--расширение,
 но работал примерно в $60$ раз дольше.
@@ -77,22 +76,48 @@ $\gamma_0 = 1.5$\\
 $\gamma_1 = 0.5$\\
 $\epsilon_t = \frac{1}{t}$\\
 
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[t]{\textwidth}
+            \centering
+            \includegraphics[width=0.9\textwidth]{profile_tsukuba.eps}
+    \end{subfigure}
+    \begin{subfigure}[t]{\textwidth}
+            \centering
+            \includegraphics[width=0.9\textwidth]{profile_cones.eps}
+    \end{subfigure}
+    \caption{Профиль двойственной функции вдоль направления оптимизации и неточные максимумы найденные различными алгоритмами}
+    \label{fig:profile}
+\end{figure}
+Не смотря на то, что двойственная функция является кусочно линейной, она очень близка к гладкой, так что методы неточной одномерной оптимизации кажутся довольно перспективным направлением работы~(рис.~\ref{fig:profile}). Нами был опробован метод Флетчера и <<backtracking>>.\\
+
+
 На графиках приведены примеры работы алгоритмов (в том числе
 длинны шагов, выбранных адаптивным методом) на стереопаре Tsukuba.
 \begin{figure}
     \centering
     \begin{subfigure}[t]{\textwidth}
             \centering
-            \includegraphics[width=\textwidth]{comparative.eps}
+            \includegraphics[width=1.5\textwidth]{comparative_tsukuba.eps}
             \caption{Сравнение скорости и качества работы различных методов.
                     Для $\alpha$--расширения указанна только прямая энергия,
                     для остальных алгоритмов указанна прямая и двойственная энергия.}
     \end{subfigure}
     \begin{subfigure}[t]{\textwidth}
             \centering
-            \includegraphics[width=\textwidth]{adaptive_step.eps}
-            \caption{Длинна шага выбранная на каждой итерации адаптивным методом}
+            \includegraphics[width=1.5\textwidth]{comparative_tsukuba_small.eps}
     \end{subfigure}
+    \begin{subfigure}[t]{\textwidth}
+            \centering
+            \includegraphics[width=1.5\textwidth]{1d_optimization.eps}
+    \end{subfigure}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{step_adap_vs_adapBack.eps}
+    \caption{Длинна шага выбранная на каждой итерации адаптивным методом и методом <<backtracking>>}
 \end{figure}
 
 \begin{figure}

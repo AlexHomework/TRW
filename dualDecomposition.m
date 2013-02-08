@@ -1,5 +1,5 @@
-function [labels, energy, lowerBound, time, step] = dualDecomposition(K, N, dual_func, dual_step, ...
-													init_context, varargin)
+function [labels, energy, lowerBound, time, step, dual_calls] = dualDecomposition(K, N, u_dual_func, ...
+																dual_step, init_context, varargin)
 	% Primal problem:
 	% min f1'(x1, \theta1) + min f2'(x2, \theta2)
 	% subject to x1 = x2
@@ -28,28 +28,39 @@ function [labels, energy, lowerBound, time, step] = dualDecomposition(K, N, dual
 		lambda_first = zeros(K, N);
 	end
 
+	curr_dual_calls = 0;
+	function [dual_energy, grad, upper_energy, labels_first, labels_second] = dual_func(lambda)
+		curr_dual_calls = curr_dual_calls + 1;
+		[dual_energy, grad, upper_energy, labels_first, labels_second] = u_dual_func(lambda);
+	end
+
 	lowerBound = [];
 	energy = [];
 	best_dual_energy = 0;
 	time = [];
 	step = [];
+	dual_calls = [];
 	context = init_context;
 	t = cputime;
 	for iteration = 1:iterations_count
 		% We will skip this part in time counting because it was already
 		% computed on the previous iteration in dual_step computation
 		% but it's really hard to store it (using neat code), so we recompute it
-		skip_start = cputime;
+		skip_time_start = cputime;
+		skip_oracle_calls_start = curr_dual_calls;
 		[dual_energy, grad, upper_energy, labels_first, labels_second] = dual_func(lambda_first);
-		t = t + (cputime - skip_start);
+		curr_dual_calls = skip_oracle_calls_start;
+		t = t + (cputime - skip_time_start);
 
 		best_dual_energy = max(best_dual_energy, dual_energy);
 		lowerBound = [lowerBound; dual_energy];
 		energy = [energy; upper_energy];
 
-		[context, curr_step, curr_dual_energy] = dual_step(@(step) dual_func(lambda_first + step * grad), ...
-																	grad(:), lowerBound, iteration, context);
 
+		[context, curr_step, curr_dual_energy] = dual_step(@(step) dual_func(lambda_first + step * grad), ...
+													grad(:), lowerBound, iteration, context);
+
+		dual_calls = [dual_calls; curr_dual_calls];
 		step = [step; curr_step];
 
 		lambda_first = lambda_first + curr_step * grad;

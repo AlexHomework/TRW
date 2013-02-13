@@ -6,6 +6,7 @@ function comparativePlot(name)
 
 	energy = cell(1);
 	step = cell(1);
+	oracle_calls = cell(1);
 	lowerBound = cell(1);
 	time = cell(1);
 	legend_names = cell(1);
@@ -44,36 +45,40 @@ function comparativePlot(name)
 	% legend_names{plot_num} = 'Constant with step = 3';
 	% plot_num = plot_num + 1;
 
-	[labels, curr_energy, curr_lowerBound, curr_time, curr_step] = trwGridPotts(unary, vertC, horC, ...
+	[labels, curr_energy, curr_lowerBound, curr_time, curr_step, curr_oracle_calls] = trwGridPotts(unary, vertC, horC, ...
 															@adaptiveSubgradient, struct());
 	step{plot_num} = curr_step;
+	oracle_calls{plot_num} = curr_oracle_calls;
 	energy{plot_num} = curr_energy;
 	lowerBound{plot_num} = curr_lowerBound;
 	time{plot_num} = curr_time;
 	legend_names{plot_num} = 'Adaptive';
 	plot_num = plot_num + 1;
 
-	[labels, curr_energy, curr_lowerBound, curr_time, curr_step] = trwGridPotts(unary, vertC, horC, ...
+	[labels, curr_energy, curr_lowerBound, curr_time, curr_step, curr_oracle_calls] = trwGridPotts(unary, vertC, horC, ...
 															@backtrackingSubgradient, struct());
 	step{plot_num} = curr_step;
+	oracle_calls{plot_num} = curr_oracle_calls;
 	energy{plot_num} = curr_energy;
 	lowerBound{plot_num} = curr_lowerBound;
 	time{plot_num} = curr_time;
 	legend_names{plot_num} = 'Backtracking';
 	plot_num = plot_num + 1;
 
-	[labels, curr_energy, curr_lowerBound, curr_time, curr_step] = trwGridPotts(unary, vertC, horC, ...
+	[labels, curr_energy, curr_lowerBound, curr_time, curr_step, curr_oracle_calls] = trwGridPotts(unary, vertC, horC, ...
 															@backtrackingSubgradient, struct('use_adaptive_init', 1));
 	step{plot_num} = curr_step;
+	oracle_calls{plot_num} = curr_oracle_calls;
 	energy{plot_num} = curr_energy;
 	lowerBound{plot_num} = curr_lowerBound;
 	time{plot_num} = curr_time;
 	legend_names{plot_num} = 'Backtracking (from adaptive)';
 	plot_num = plot_num + 1;
 
-	[labels, curr_energy, curr_lowerBound, curr_time, curr_step] = trwGridPotts(unary, vertC, horC, ...
+	[labels, curr_energy, curr_lowerBound, curr_time, curr_step, curr_oracle_calls] = trwGridPotts(unary, vertC, horC, ...
 															@fletcherSubgradient, struct());
 	step{plot_num} = curr_step;
+	oracle_calls{plot_num} = curr_oracle_calls;
 	energy{plot_num} = curr_energy;
 	lowerBound{plot_num} = curr_lowerBound;
 	time{plot_num} = curr_time;
@@ -149,7 +154,7 @@ function comparativePlot(name)
 	    'FontWeight' , 'bold'      );
 	hold off;
 
-	out_filename = strcat('plots/comparative_', name);
+	out_filename = strcat('experiments/new/time_', name);
 	set(gcf, 'PaperPositionMode', 'auto');
 	print('-depsc2', strcat(out_filename, '.eps'));
 	saveas(fig_handle, out_filename,'fig');
@@ -159,7 +164,7 @@ function comparativePlot(name)
 	tmp = figure;
 	hold all;
 	plot_arr = [];
-	for i = 1:plot_num - 1
+	for i = 1:(plot_num - 1)
 		p = plot(energy{i});
 		plotProperties(p);
 		plot_arr = [plot_arr, p];
@@ -184,11 +189,15 @@ function comparativePlot(name)
 	    'FontSize'   , 12          , ...
 	    'FontWeight' , 'bold'      );
 	hold off;
+	out_filename = strcat('experiments/new/outer_iterations_', name);
+	set(gcf, 'PaperPositionMode', 'auto');
+	print('-depsc2', strcat(out_filename, '.eps'));
+	saveas(step_fig_handle, out_filename,'fig');
 
 	step_fig_handle = figure;
 	hold all;
 	plot_arr = [];
-	for i = 1:plot_num - 1
+	for i = 1:(plot_num - 2)
 		curr_time = time{i};
 		add = (curr_time(end) + 1) : max_time;
 		add = reshape(add, length(add), 1);
@@ -218,7 +227,7 @@ function comparativePlot(name)
 	hold off;
 
 
-	out_filename = strcat('plots/step_', name);
+	out_filename = strcat('experiments/new/step_', name);
 	set(gcf, 'PaperPositionMode', 'auto');
 	print('-depsc2', strcat(out_filename, '.eps'));
 	saveas(step_fig_handle, out_filename,'fig');
@@ -228,6 +237,49 @@ function comparativePlot(name)
 	% print('-depsc2', strcat(out_filename, '.eps'));
 	% saveas(fig_handle, out_filename,'fig');
 	% close;
+
+
+	
+
+	oracle_fig_handle = figure;
+	hold all;
+	plot_arr = [];
+	for i = 1:plot_num - 2
+		curr_oracle_calls = oracle_calls{i};
+		curr_energy = energy{i};
+		p = plot(curr_oracle_calls, curr_energy);
+		plotProperties(p);
+		plot_arr = [plot_arr, p];
+		curr_lowerBound = lowerBound{i};
+		p = plot(curr_oracle_calls, curr_lowerBound, 'Color', get(p,'Color'));
+		plotProperties(p);
+	end
+	
+
+	hLegend = legend(plot_arr, legend_names);
+	hTitle = title('Comparative plot');
+	hXLabel = xlabel('Oracle calls');
+	hYLabel = ylabel('Energy');
+	set( gca                       , ...
+	    'FontName'   , 'Helvetica' );
+	set([hTitle, hXLabel, hYLabel], ...
+	    'FontName'   , 'AvantGarde');
+	set([hLegend]                 , ...
+	    'FontSize'   , 11          );
+	set([hXLabel, hYLabel]  , ...
+	    'FontSize'   , 10          );
+	set( hTitle                    , ...
+	    'FontSize'   , 12          , ...
+	    'FontWeight' , 'bold'      );
+	hold off;
+
+
+	out_filename = strcat('experiments/new/oracle_', name);
+	set(gcf, 'PaperPositionMode', 'auto');
+	print('-depsc2', strcat(out_filename, '.eps'));
+	saveas(step_fig_handle, out_filename,'fig');
+
+	save('experiments/new/data.mat', 'energy', 'step', 'oracle_calls', 'lowerBound', 'time', 'legend_names');
 end
 
 function plotProperties(p)

@@ -183,7 +183,7 @@ function compareEverything(experiment_name)
 				plot_arr = [plot_arr, p];
 			end
 		end
-		figureProperties(plot_arr, curr_legend_names, 'Step plot', 'Iteration', 'Step size');
+		figureProperties(plot_arr, curr_legend_names, 'Step plot', 'Time (sec)', 'Step size');
 		hold off;
 
 

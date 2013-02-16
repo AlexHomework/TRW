@@ -1,10 +1,28 @@
-function compareEverything(experiment_name)
+function compareEverything(experiment_name, varargin)
 	% Compare different optimization methods, draw aggregate plots
 	% and save everything (plots and the .mat file)
-	% to experiments/experiment_name folder
+	% to experiments/experiment_name folder.
+	% If you use this function with existing experiment folder,
+	% it will try to use as much stored information as
+	% possible to reduce computations.
+	% 
+	% Optional parameters is:
+	% 	profile_plots is a vector with iteration of TRW numbers
+	% 	on which profile plots (plot of the function
+	%	in the optimization direction) will be shown.
 	% 
 
+	[profile_plots] = process_options(varargin, 'profile_plots', []);
+
 	experiment_folder = strcat('experiments/', experiment_name);
+
+
+	oracle_calls_counter = 0;
+	function [value, der] = gridDualCounted(lambda, unary, vertC, horC)
+		% Wrapper to count gridDual function calls
+		oracle_calls_counter = oracle_calls_counter + 1;
+		[value, der] = gridDual(lambda, unary, vertC, horC);
+	end
 
 	data_set = getDataSet();
 	baseline_algos = getBaselineAlgos();
@@ -26,13 +44,15 @@ function compareEverything(experiment_name)
 		vertC = data_piece.vertC;
 		horC = data_piece.horC;
 		data_name = data_piece.name;
-		% known_data_piece == true iff current data piece
+		% is_known_data_piece == true iff current data piece
 		% was already processed with some algorithms.
-		known_data_piece = sum(ismember(data_set_names, data_name)) == 1;
+		is_known_data_piece = any(ismember(data_set_names, data_name));
 
-		if (known_data_piece)
+		if (is_known_data_piece)
 			results_filename = strcat(experiment_folder, '/data_', data_name, '.mat');
-			load(results_filename, 'labels', 'energy', 'oracle_calls', 'time', 'step', 'lowerBound', 'legend_names');
+			load(results_filename, 'labels', 'energy', 'oracle_calls', 'time', 'step', ...
+							'lowerBound', 'legend_names', 'unary', 'vertC', 'horC', ...
+							'data_name', 'profile_info');
 			plot_num = length(labels) + 1;
 		else
 			% Start everything from scratch.
@@ -42,6 +62,7 @@ function compareEverything(experiment_name)
 			time = cell(1);
 			step = cell(1);
 			lowerBound = cell(1);
+			profile_info = cell(1);
 			legend_names = cell(1);
 			plot_num = 1;
 		end
@@ -49,8 +70,8 @@ function compareEverything(experiment_name)
 		for algo_i = 1:length(baseline_algos)
 			algo = baseline_algos{algo_i}{1};
 			algo_name = baseline_algos{algo_i}{2};
-			known_algo = sum(ismember(baseline_algos_names, algo_name)) == 1;
-			if (known_data_piece == false || known_algo == false)
+			is_known_algo = any(ismember(baseline_algos_names, algo_name));
+			if (is_known_data_piece == false || is_known_algo == false)
 				[curr_labels, curr_energy, curr_lowerBound, curr_time] = algo(unary, vertC, horC);
 				labels{plot_num} = curr_labels;
 				energy{plot_num} = curr_energy;
@@ -71,17 +92,19 @@ function compareEverything(experiment_name)
 			algo = step_algos{algo_i}{1};
 			init_params = step_algos{algo_i}{2};
 			algo_name = step_algos{algo_i}{3};
-			known_algo = sum(ismember(step_algos_names, algo_name)) == 1;
-			if (known_data_piece == false || known_algo == false)
+			is_known_algo = any(ismember(step_algos_names, algo_name));
+			if (is_known_data_piece == false || is_known_algo == false)
 				[curr_labels, curr_energy, curr_lowerBound, ...
-							curr_time, curr_step, curr_oracle_calls] = ...
-							trwGridPotts(unary, vertC, horC, algo, init_params);
+							curr_time, curr_step, curr_oracle_calls, curr_profile_info] = ...
+							trwGridPotts(unary, vertC, horC, algo, init_params, ...
+											'save_iterations', profile_plots);
 				labels{plot_num} = curr_labels;
 				energy{plot_num} = curr_energy;
 				lowerBound{plot_num} = curr_lowerBound;
 				time{plot_num} = curr_time;
 				step{plot_num} = curr_step;
 				oracle_calls{plot_num} = curr_oracle_calls;
+				profile_info{algo_i} = curr_profile_info;
 				legend_names{plot_num} = step_algos{algo_i}{3};
 				plot_num = plot_num + 1;
 			end
@@ -227,32 +250,104 @@ function compareEverything(experiment_name)
 		saveas(oracle_fig, out_filename,'fig');
 		close;
 
+		
+		% Draw and save profile plots
+		resolution = 100; % Points of profile plot count
+		for main_algo_i = 1:length(step_algos)
+			for piece = 1:length(profile_info{main_algo_i})
+				curr_info = profile_info{main_algo_i}{piece};
+				f = @(step) gridDualCounted(curr_info.lambda_first + step * curr_info.direction, ...
+																		unary, vertC, horC);
+
+
+				profile_fig = figure;
+				hold all;
+
+				curr_legend_names = {};
+				plot_arr = [];
+				prev_oracle_calls_counter = oracle_calls_counter;
+				steps_arr = [];
+				for algo_i = 1:length(step_algos)
+					algo = step_algos{algo_i}{1};
+					init_params = step_algos{algo_i}{2};
+					algo_name = step_algos{algo_i}{3};
+					if (strcmp(algo_name, step_algos{main_algo_i}{3}))
+						curr_step = curr_info.step;
+						f_val = f(curr_step);
+						curr_oracle_calls = curr_info.oracle_calls;
+					else
+						[~, curr_step, f_val] = algo(f, curr_info.direction(:), [curr_info.dual_energy], ...
+																1, init_params);
+						curr_oracle_calls = oracle_calls_counter - prev_oracle_calls_counter;
+					end
+					steps_arr(end + 1) = curr_step;
+					p = plot(curr_step, f_val, '-o');
+					plot_arr = [plot_arr, p];
+					curr_legend_names{end + 1} = strcat(algo_name, ' (', ...
+										int2str(curr_oracle_calls), ')');
+					prev_oracle_calls_counter = oracle_calls_counter;
+				end
+
+				% Plot from zero to two times the average step size
+				end_point = 2 * mean(steps_arr);
+				moments = [0:(end_point / resolution):end_point];
+				values = arrayfun(f, moments);
+				p = plot(moments, values);
+				plotProperties(p);
+
+				title = strcat(step_algos{main_algo_i}{3}, ', iteration ', int2str(curr_info.iteration));
+				figureProperties(plot_arr, curr_legend_names, title, ...
+											'Step size', 'Energy', 'legend_location', 'South');
+				hold off;
+
+				out_filename = strcat(experiment_folder, '/profile_', ...
+											step_algos{main_algo_i}{3}, '_', ...
+											int2str(curr_info.iteration), ...
+											'_', data_name);
+				set(gcf, 'PaperPositionMode', 'auto');
+				print('-depsc2', strcat(out_filename, '.eps'));
+				saveas(profile_fig, out_filename,'fig');
+				close;
+			end
+		end
+
 
 		out_filename = strcat(experiment_folder, '/data_', data_name, '.mat');
-		save(out_filename, 'labels', 'energy', 'oracle_calls', 'time', 'step', 'lowerBound', 'legend_names');
+		save(out_filename, 'labels', 'energy', 'oracle_calls', 'time', 'step', ...
+							'lowerBound', 'legend_names', 'unary', 'vertC', 'horC', ...
+							'data_name', 'profile_info');
+
+		% Store what methods & data we used here.
+		% This make possible to recognize already
+		% processed data and not recompute it in future.
+		data_set_mat = cell2mat(data_set(1:data_piece_ind));
+		data_set_names = {data_set_mat.name};
+		baseline_algos_mat = [baseline_algos{:}];
+		baseline_algos_names = {baseline_algos_mat(2:2:end)};
+		baseline_algos_names = baseline_algos_names{1};
+		step_algos_mat = [step_algos{:}];
+		step_algos_names = {step_algos_mat(3:3:end)};
+		step_algos_names = step_algos_names{1};
+		out_filename = strcat(experiment_folder, '/processed_list.mat');
+		save(out_filename, 'data_set_names', 'baseline_algos_names', 'step_algos_names');
 	end
 
-	% Store what methods & data we used here.
-	% This make possible to recognize already
-	% processed data and not recompute it in future.
-	data_set_mat = cell2mat(data_set);
-	data_set_names = {data_set_mat.name};
-	baseline_algos_mat = [baseline_algos{:}];
-	baseline_algos_names = {baseline_algos_mat(2:2:end)};
-	baseline_algos_names = baseline_algos_names{1};
-	step_algos_mat = [step_algos{:}];
-	step_algos_names = {step_algos_mat(3:3:end)};
-	step_algos_names = step_algos_names{1};
-	out_filename = strcat(experiment_folder, '/processed_list.mat');
-	save(out_filename, 'data_set_names', 'baseline_algos_names', 'step_algos_names');
 end
 
 function plotProperties(p)
 	set(p, 'LineWidth', 1.5);
 end
 
-function figureProperties(plot_arr, legend_names, title_str, xlabel_str, ylabel_str)
-	hLegend = legend(plot_arr, legend_names);
+function figureProperties(plot_arr, legend_names, title_str, xlabel_str, ylabel_str, varargin)
+	% You can specify legend location in otional 'legend_location' parameter
+	% 
+
+	[legend_location] = process_options(varargin, 'legend_location', []);
+	if (isempty(legend_location))
+		hLegend = legend(plot_arr, legend_names);
+	else
+		hLegend = legend(plot_arr, legend_names, 'location', legend_location);
+	end
 	hTitle = title(title_str);
 	hXLabel = xlabel(xlabel_str);
 	hYLabel = ylabel(ylabel_str);
@@ -267,4 +362,14 @@ function figureProperties(plot_arr, legend_names, title_str, xlabel_str, ylabel_
 	set( hTitle                    , ...
 	    'FontSize'   , 12          , ...
 	    'FontWeight' , 'bold'      );
+	set(gca, ...
+		'Box'         , 'off'     , ...
+		'TickDir'     , 'out'     , ...
+		'TickLength'  , [.02 .02] , ...
+		'XMinorTick'  , 'on'      , ...
+		'YMinorTick'  , 'on'      , ...
+		'YGrid'       , 'on'      , ...
+		'XColor'      , [.3 .3 .3], ...
+		'YColor'      , [.3 .3 .3], ...
+		'LineWidth'   , 1         );
 end

@@ -1,4 +1,5 @@
-function [labels, energy, lowerBound, time, step, dual_calls] = dualDecomposition(K, N, u_dual_func, ...
+function [labels, energy, lowerBound, time, step, dual_calls, iterations_info] = ...
+																dualDecomposition(K, N, u_dual_func, ...
 																dual_step, init_context, varargin)
 	% Primal problem:
 	% min f1'(x1, \theta1) + min f2'(x2, \theta2)
@@ -20,10 +21,15 @@ function [labels, energy, lowerBound, time, step, dual_calls] = dualDecompositio
 	% labels_first  = argmin over x1 (f1'(x1, \theta1 + \lambda))
 	% labels_second = argmin over x2 (f2'(x2, \theta2 - \lambda))
 	%
-	% Optional parameter lambda is for lambda_first initialization
-	% 
+	% Optional parameters are:
+	%	lambda for lambda_first initialization
+	% 	save_iterations is vector with iteration numbers,
+	% 		about which dualDecomposition will return all possible
+	% 		information (such as optimization direction)
+	% 		in iterations_info vector
 
-	[iterations_count, lambda_first] = process_options(varargin, 'iter', 600, 'lambda', zeros(K, N));
+	[iterations_count, lambda_first, save_iterations] = process_options(varargin, 'iter', 400, ...
+												'lambda', zeros(K, N), 'save_iterations', []);
 	if prod(size(lambda_first)) == 0
 		lambda_first = zeros(K, N);
 	end
@@ -41,6 +47,7 @@ function [labels, energy, lowerBound, time, step, dual_calls] = dualDecompositio
 	step = [];
 	dual_calls = [];
 	context = init_context;
+	iterations_info = {};
 	t = cputime;
 	for iteration = 1:iterations_count
 		% We will skip this part in time counting because it was already
@@ -59,6 +66,14 @@ function [labels, energy, lowerBound, time, step, dual_calls] = dualDecompositio
 
 		[context, curr_step, curr_dual_energy] = dual_step(@(step) dual_func(lambda_first + step * grad), ...
 													grad(:), lowerBound, iteration, context);
+		
+		if (any(save_iterations == iteration))
+			iterations_info{end + 1} = struct('iteration', iteration, 'step', curr_step, ...
+											'oracle_calls', curr_dual_calls - dual_calls(end), ...
+											'upper_energy', upper_energy, 'dual_energy', dual_energy, ...
+											'direction', grad, 'lambda_first', lambda_first, ...
+											'labels_first', labels_first, 'labels_second', labels_second);
+		end
 
 		dual_calls = [dual_calls; curr_dual_calls];
 		step = [step; curr_step];

@@ -7,9 +7,9 @@ function [best_h, dual_energy] = maxBacktracking(func, func_0, grad_sq, h_init)
 	dual_energy = func(h);
 
 	while (it <= max_iter) & (dual_energy < (func_0 + rho * h * grad_sq))
-		dual_energy = func(h);
 		h = h * fact;
 		it = it + 1;
+		dual_energy = func(h);
 	end
 	best_h = h;
 	if it > max_iter

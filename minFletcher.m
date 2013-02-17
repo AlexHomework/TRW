@@ -1,4 +1,4 @@
-function [alpha_min, f_min, status] = minFletcher(func, d, varargin)
+function [alpha_min, f_min, status] = minFletcher(func, d, f_start, g_start, varargin)
 % Default parameters
 epsilon = 1e-5;
 rho = 0.1;
@@ -33,8 +33,9 @@ end
 
 flag = 0;
 a_l = 0;
-a_u = 10^99;
-[f_l, g] = user_func(0);
+a_u = 10;
+f_l = f_start;
+g = g_start;
 f_d_l = g' * d;
 a_0 = 1;
 for k = 1:max_iter

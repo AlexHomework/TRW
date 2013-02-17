@@ -1,5 +1,6 @@
-function [context, alpha_n, f_n] = adaptiveSubgradient(func, grad, lower_bound, iteration, context)
-	 % Adaptive projected subgradient step computation
+function [context, alpha_n, f_n] = adaptiveSubgradient(func, direction, grad, ...
+														lower_bound, iteration, context)
+	 % Adaptive optimization step computation
 	gamma0 = 1.5;
 	gamma1 = 0.5;
 	epsilon = @(n) 1 / n;
@@ -17,7 +18,8 @@ function [context, alpha_n, f_n] = adaptiveSubgradient(func, grad, lower_bound, 
 	context.delta_prev = delta;
 	best_dual_energy = max(lower_bound);
 	alpha_n = best_dual_energy + delta - lower_bound(iteration);
-	alpha_n = alpha_n / sum(abs(grad));
+	normalization_c = (direction' * grad)^2 / (direction' * direction)
+	alpha_n = alpha_n / normalization_c;
 
 	f_n = func(alpha_n);
 end

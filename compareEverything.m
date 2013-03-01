@@ -6,10 +6,10 @@ function compareEverything(experiment_name, varargin)
 	% it will try to use as much stored information as
 	% possible to reduce computations.
 	% 
-	% Optional parameters is:
+	% Optional parameters:
 	% 	profile_plots is a vector with iteration of TRW numbers
-	% 	on which profile plots (plot of the function
-	%	in the optimization direction) will be shown.
+	%	 	on which profile plots (plot of the function
+	%		in the optimization direction) will be shown.
 	% 
 
 	[profile_plots] = process_options(varargin, 'profile_plots', []);
@@ -23,10 +23,22 @@ function compareEverything(experiment_name, varargin)
 		oracle_calls_counter = oracle_calls_counter + 1;
 		[value, der] = gridDual(lambda, unary, vertC, horC);
 	end
+	function counter = getOracleCalls()
+		% Return oracle calls since last query or reset.
+		% 
+		counter = oracle_calls_counter;
+		resetOracleCalls();
+	end
+	function counter = resetOracleCalls()
+		oracle_calls_counter = 0;
+	end
+
 
 	data_set = getDataSet();
 	baseline_algos = getBaselineAlgos();
 	step_algos = getStepComputingAlgos();
+	allAlgoCount = numel(baseline_algos) + numel(step_algos);
+	colorsList = hsv(allAlgoCount);
 	if exist(experiment_folder, 'dir')
 		% Find that we have already computed
 		processed_filename = strcat(experiment_folder, '/processed_list.mat');
@@ -56,14 +68,14 @@ function compareEverything(experiment_name, varargin)
 			plot_num = length(labels) + 1;
 		else
 			% Start everything from scratch.
-			labels = cell(1);
-			energy = cell(1);
-			oracle_calls = cell(1);
-			time = cell(1);
-			step = cell(1);
-			lowerBound = cell(1);
-			profile_info = cell(1);
-			legend_names = cell(1);
+			labels = {};
+			energy = {};
+			oracle_calls = {};
+			time = {};
+			step = {};
+			lowerBound = {};
+			profile_info = {};
+			legend_names = {};
 			plot_num = 1;
 		end
 
@@ -114,140 +126,42 @@ function compareEverything(experiment_name, varargin)
 
 
 
-		max_time = 0;
-		max_iter = 0;
-		for i = 1:plot_num
-			curr_time = time{i};
-			if curr_time(end) > max_time
-				max_time = curr_time(end);
-			end
-			if length(curr_time) > max_iter
-				max_iter = length(curr_time);
-			end
-		end
-
-		time_fig = figure;
-		hold all;
-		plot_arr = [];
-		curr_legend_names = {};
-		for i = 1:plot_num
-			curr_time = time{i};
-			add = (curr_time(end) + 1) : max_time;
-			add = reshape(add, length(add), 1);
-			curr_time = [curr_time; add];
-			curr_energy = [energy{i}; energy{i}(end) * ones(length(add), 1)];
-			p = plot(curr_time, curr_energy);
-			plotProperties(p);
-			plot_arr = [plot_arr, p];
-			curr_lowerBound = [lowerBound{i}; lowerBound{i}(end) * ones(length(add), 1)];
-			p = plot(curr_time, curr_lowerBound, 'Color', get(p,'Color'));
-			curr_legend_names{end + 1} = legend_names{i};
-			plotProperties(p);
-		end
-		figureProperties(plot_arr, curr_legend_names, 'Time plot', 'Time (sec)', 'Energy');
-		hold off;
-
-		out_filename = strcat(experiment_folder, '/time_', data_name);
-		set(gcf, 'PaperPositionMode', 'auto');
-		print('-depsc2', strcat(out_filename, '.eps'));
-		saveas(time_fig, out_filename,'fig');
-
+		time_fig = plotAll(time, {energy, lowerBound}, legend_names, ...
+									@(time, energy) ~isempty(energy), 'Time plot', ...
+									'Time (sec)', 'Energy', colorsList, 'MultipleParts', true);
+		out_filename = strcat('time_', data_name);
+		saveFigure(time_fig, out_filename, experiment_folder);
 		out_filename = strcat(out_filename, '_small');
-		ylim([small_lower, small_upper]);
-		print('-depsc2', strcat(out_filename, '.eps'));
-		saveas(time_fig, out_filename,'fig');
+		saveFigure(time_fig, out_filename, experiment_folder, 'ylim', [small_lower, small_upper]);
 		close;
 
 
 
-		outer_iterations_fig = figure;
-		hold all;
-		plot_arr = [];
-		curr_legend_names = {};
-		for i = 1:plot_num
-			if (length(energy{i}) > 1)
-				p = plot(energy{i});
-				plotProperties(p);
-				plot_arr = [plot_arr, p];
-				p = plot(lowerBound{i}, 'Color', get(p,'Color'));
-				curr_legend_names{end + 1} = legend_names{i};
-				plotProperties(p);
-			end
-		end
-		figureProperties(plot_arr, curr_legend_names, 'Comparative plot', 'Outer iterations', 'Energy');
-		hold off;
-
-		out_filename = strcat(experiment_folder, '/outer_iterations_', data_name);
-		set(gcf, 'PaperPositionMode', 'auto');
-		print('-depsc2', strcat(out_filename, '.eps'));
-		saveas(outer_iterations_fig, out_filename,'fig');
-
+		outer_iterations_fig = plotAll([], {energy, lowerBound}, legend_names, ...
+									@(time, energy) length(energy) > 1, 'Comparative plot', ...
+									'Outer iterations', 'Energy', colorsList, 'MultipleParts', true);
+		out_filename = strcat('outer_iterations_', data_name);
+		saveFigure(outer_iterations_fig, out_filename, experiment_folder);
 		out_filename = strcat(out_filename, '_small');
-		ylim([small_lower, small_upper]);
-		print('-depsc2', strcat(out_filename, '.eps'));
-		saveas(outer_iterations_fig, out_filename,'fig');
+		saveFigure(outer_iterations_fig, out_filename, experiment_folder, 'ylim', [small_lower, small_upper]);
 		close;
 
 
-		step_fig = figure;
-		hold all;
-		plot_arr = [];
-		curr_legend_names = {};
-		for i = 1:plot_num
-			if (~isempty(step{i}))
-				curr_time = time{i};
-				add = (curr_time(end) + 1) : max_time;
-				add = reshape(add, length(add), 1);
-				curr_time = [curr_time; add];
-				curr_step = [step{i}; step{i}(end) * ones(length(add), 1)];
-				p = plot(curr_time, curr_step);
-				curr_legend_names{end + 1} = legend_names{i};
-				plotProperties(p);
-				plot_arr = [plot_arr, p];
-			end
-		end
-		figureProperties(plot_arr, curr_legend_names, 'Step plot', 'Time (sec)', 'Step size');
-		hold off;
-
-
-		out_filename = strcat(experiment_folder, '/step_', data_name);
-		set(gcf, 'PaperPositionMode', 'auto');
-		print('-depsc2', strcat(out_filename, '.eps'));
-		saveas(step_fig, out_filename,'fig');
+		step_fig = plotAll(time, step, legend_names, ...
+									@(time, step) ~isempty(step), 'Step plot', ...
+									'Time (sec)', 'Step size', colorsList);
+		out_filename = strcat('step_', data_name);
+		saveFigure(step_fig, out_filename, experiment_folder);
 		close;
 
 
-		
-
-		oracle_fig = figure;
-		hold all;
-		plot_arr = [];
-		curr_legend_names = {};
-		for i = 1:plot_num
-			if (~isempty(oracle_calls{i}))
-				curr_oracle_calls = oracle_calls{i};
-				curr_energy = energy{i};
-				p = plot(curr_oracle_calls, curr_energy);
-				plotProperties(p);
-				plot_arr = [plot_arr, p];
-				curr_lowerBound = lowerBound{i};
-				p = plot(curr_oracle_calls, curr_lowerBound, 'Color', get(p,'Color'));
-				curr_legend_names{end + 1} = legend_names{i};
-				plotProperties(p);
-			end
-		end
-		figureProperties(plot_arr, curr_legend_names, 'Oracle calls plot', 'Oracle calls', 'Energy');
-		hold off;
-
-		out_filename = strcat(experiment_folder, '/oracle_', data_name);
-		set(gcf, 'PaperPositionMode', 'auto');
-		print('-depsc2', strcat(out_filename, '.eps'));
-		saveas(oracle_fig, out_filename,'fig');
-
+		oracle_fig = plotAll(oracle_calls, {energy, lowerBound}, legend_names, ...
+									@(oracle_calls, energy) ~isempty(oracle_calls), 'Oracle calls plot', ...
+									'Oracle calls', 'Energy', colorsList, 'MultipleParts', true);
+		out_filename = strcat('oracle_', data_name);
+		saveFigure(oracle_fig, out_filename, experiment_folder);
 		out_filename = strcat(out_filename, '_small');
-		ylim([small_lower, small_upper]);
-		print('-depsc2', strcat(out_filename, '.eps'));
-		saveas(oracle_fig, out_filename,'fig');
+		saveFigure(oracle_fig, out_filename, experiment_folder, 'ylim', [small_lower, small_upper]);
 		close;
 
 		
@@ -263,9 +177,9 @@ function compareEverything(experiment_name, varargin)
 				profile_fig = figure;
 				hold all;
 
+				resetOracleCalls();
 				curr_legend_names = {};
 				plot_arr = [];
-				prev_oracle_calls_counter = oracle_calls_counter;
 				steps_arr = [];
 				for algo_i = 1:length(step_algos)
 					algo = step_algos{algo_i}{1};
@@ -276,16 +190,17 @@ function compareEverything(experiment_name, varargin)
 						f_val = f(curr_step);
 						curr_oracle_calls = curr_info.oracle_calls;
 					else
-						[~, curr_step, f_val] = algo(f, curr_info.direction(:), [curr_info.dual_energy], ...
-																1, init_params);
-						curr_oracle_calls = oracle_calls_counter - prev_oracle_calls_counter;
+						[~, grad] = f(0);
+						resetOracleCalls();
+						[~, curr_step, f_val] = algo(f, curr_info.direction(:), grad(:), ...
+															[curr_info.dual_energy], 1, init_params);
+						curr_oracle_calls = getOracleCalls();
 					end
 					steps_arr(end + 1) = curr_step;
 					p = plot(curr_step, f_val, '-o');
 					plot_arr = [plot_arr, p];
 					curr_legend_names{end + 1} = strcat(algo_name, ' (', ...
 										int2str(curr_oracle_calls), ')');
-					prev_oracle_calls_counter = oracle_calls_counter;
 				end
 
 				% Plot from zero to two times the average step size
@@ -293,10 +208,9 @@ function compareEverything(experiment_name, varargin)
 				moments = [0:(end_point / resolution):end_point];
 				values = arrayfun(f, moments);
 				p = plot(moments, values);
-				plotProperties(p);
 
 				title = strcat(step_algos{main_algo_i}{3}, ', iteration ', int2str(curr_info.iteration));
-				figureProperties(plot_arr, curr_legend_names, title, ...
+				setFigureProperties(plot_arr, curr_legend_names, title, ...
 											'Step size', 'Energy', 'legend_location', 'South');
 				hold off;
 
@@ -320,56 +234,134 @@ function compareEverything(experiment_name, varargin)
 		% Store what methods & data we used here.
 		% This make possible to recognize already
 		% processed data and not recompute it in future.
-		data_set_mat = cell2mat(data_set(1:data_piece_ind));
-		data_set_names = {data_set_mat.name};
-		baseline_algos_mat = [baseline_algos{:}];
-		baseline_algos_names = {baseline_algos_mat(2:2:end)};
-		baseline_algos_names = baseline_algos_names{1};
-		step_algos_mat = [step_algos{:}];
-		step_algos_names = {step_algos_mat(3:3:end)};
-		step_algos_names = step_algos_names{1};
-		out_filename = strcat(experiment_folder, '/processed_list.mat');
-		save(out_filename, 'data_set_names', 'baseline_algos_names', 'step_algos_names');
+		storeProcessedList(data_set(1:data_piece_ind), baseline_algos, step_algos, experiment_folder);
 	end
-
 end
 
-function plotProperties(p)
-	set(p, 'LineWidth', 1.5);
-end
-
-function figureProperties(plot_arr, legend_names, title_str, xlabel_str, ylabel_str, varargin)
-	% You can specify legend location in otional 'legend_location' parameter
+function storeProcessedList(proc_data_set, proc_baseline_algos, proc_step_algos, experiment_folder)
+	% Store 'that we've done' list.
 	% 
 
-	[legend_location] = process_options(varargin, 'legend_location', []);
-	if (isempty(legend_location))
-		hLegend = legend(plot_arr, legend_names);
-	else
-		hLegend = legend(plot_arr, legend_names, 'location', legend_location);
+	data_set_mat = cell2mat(proc_data_set(:));
+	data_set_names = {data_set_mat.name};
+	baseline_algos_mat = [proc_baseline_algos{:}];
+	baseline_algos_names = {baseline_algos_mat(2:2:end)};
+	baseline_algos_names = baseline_algos_names{1};
+	step_algos_mat = [proc_step_algos{:}];
+	step_algos_names = {step_algos_mat(3:3:end)};
+	step_algos_names = step_algos_names{1};
+	out_filename = strcat(experiment_folder, '/processed_list.mat');
+	save(out_filename, 'data_set_names', 'baseline_algos_names', 'step_algos_names');
+end
+
+function saveFigure(figure_handler, name, experiment_folder, varargin)
+	% Store figure in .eps and .fig formats
+	% 
+	% Optional parameters:
+	% 	ylim
+	% 
+
+	[user_ylim] = process_options(varargin, 'ylim', []);
+	if (~isempty(user_ylim))
+		ylim(user_ylim);
 	end
-	hTitle = title(title_str);
-	hXLabel = xlabel(xlabel_str);
-	hYLabel = ylabel(ylabel_str);
-	set( gca                       , ...
-	    'FontName'   , 'Helvetica' );
-	set([hTitle, hXLabel, hYLabel], ...
-	    'FontName'   , 'AvantGarde');
-	set([hLegend]                 , ...
-	    'FontSize'   , 11          );
-	set([hXLabel, hYLabel]  , ...
-	    'FontSize'   , 10          );
-	set( hTitle                    , ...
-	    'FontSize'   , 12          , ...
-	    'FontWeight' , 'bold'      );
-	set(gca, ...
-		'Box'         , 'off'     , ...
-		'TickDir'     , 'out'     , ...
-		'TickLength'  , [.02 .02] , ...
-		'XMinorTick'  , 'on'      , ...
-		'YMinorTick'  , 'on'      , ...
-		'YGrid'       , 'on'      , ...
-		'XColor'      , [.3 .3 .3], ...
-		'YColor'      , [.3 .3 .3], ...
-		'LineWidth'   , 1         );
+
+	out_filename = strcat(experiment_folder, '/', name);
+	set(gcf, 'PaperPositionMode', 'auto');
+	print('-depsc2', strcat(out_filename, '.eps'));
+	saveas(figure_handler, out_filename,'fig');
+end
+
+function figure_handler = plotAll(x_data, y_data, legend_names, pickFunc, title_str, ...
+																xlabel_str, ylabel_str, ...
+																colorsList, varargin)
+	% Draw one comparative plot.
+	% It will draw only i-th plots such that pickFunc(x_data{i}, y_data{i}) == true
+	% 
+	% Optional parameters:
+	% 	Extend [true] -- if true each plot will
+	% 		be extended to the right with horizontal line
+	% 	MultipleParts [false] -- if true y_data considered as cell array of plot parts
+	% 	all setFigureProperties optional parameters
+	% 
+
+	[extend, multiple_plot_parts, unused_options] = process_options(varargin, ...
+												'Extend', true, 'MultipleParts', false);
+
+	if multiple_plot_parts
+		plots_count = length(y_data{1});
+	else
+		plots_count = length(y_data);
+	end
+
+
+	if (extend)
+		max_x = -Inf;
+		for i = 1:length(x_data)
+			x_curr = x_data{i};
+			if multiple_plot_parts
+				y_curr = y_data{1}{i};
+			else
+				y_curr = y_data{i};
+			end
+			if (pickFunc(x_curr, y_curr))
+				if x_curr(end) > max_x
+					max_x = x_curr(end);
+				end
+			end
+		end
+	end
+
+	figure_handler = figure;
+	hold all;
+	plot_arr = [];
+	curr_legend_names = {};
+	for i = 1:plots_count
+		if isempty(x_data)
+			x_curr = [];
+		else
+			x_curr = x_data{i};
+		end
+		if multiple_plot_parts
+			% There are multiple plot parts for each type of plot.
+			y_curr = y_data{1}{i};
+		else
+			y_curr = y_data{i};
+		end
+
+		if (pickFunc(x_curr, y_curr))
+			if (isempty(x_curr))
+				x_curr = [1:length(y_curr)];
+			end
+			curr_color = colorsList(i, :);
+			p = plot(x_curr, y_curr, 'Color', curr_color);
+			setLineProperties(p);
+			plot_arr(end + 1) = p;
+
+			if (extend)
+				x_extension = (x_curr(end) + 1) : max_x;
+				y_extension = y_curr(end) * ones(size(x_extension));
+				p = plot(x_extension, y_extension, '--', 'Color', curr_color);
+				setLineProperties(p);
+			end
+
+			if multiple_plot_parts
+				for plot_part = 2:length(y_data)
+					y_curr = y_data{plot_part}{i};
+					p = plot(x_curr, y_curr, 'Color', curr_color);
+					setLineProperties(p);
+
+					if (extend)
+						y_extension = y_curr(end) * ones(size(x_extension));
+						p = plot(x_extension, y_extension, '--', 'Color', curr_color);
+						setLineProperties(p);
+					end
+				end
+			end
+
+			curr_legend_names{end + 1} = legend_names{i};
+		end
+	end
+	setFigureProperties(plot_arr, curr_legend_names, title_str, xlabel_str, ylabel_str, unused_options{:});
+	hold off;
 end

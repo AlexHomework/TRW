@@ -3,16 +3,17 @@ function [labels, energy, lowerBound, time] = bfgsDual(unary, vertC, horC)
 
 	[K, N, M] = size(unary);
 	pars.nvar = K * N * M;
+	wrapper = gridDualWrapper(unary, vertC, horC);
 	function [value, derivative] = minus_dual(lambda, pars)
-		[value, derivative] = gridDual(reshape(lambda, K, N * M), unary, vertC, horC);
+		[value, derivative] = wrapper.dual(reshape(lambda, K, N * M));
 		value = -value;
 		derivative = -derivative(:);
 	end
 	pars.fgname = @minus_dual;
 	options.prtlevel = 2;
-	options.cpumax = 90;
-	t = cputime;
+	options.cpumax = 1000;
+	options.x0 = zeros(K * N * M, 1);
 	[lambda, ~] = hanso(pars, options);
-	time = cputime - t;
-	[lowerBound, ~, energy, labels] = gridDual(reshape(lambda, K, N * M), unary, vertC, horC);
+	[~, energy, lowerBound, time] = wrapper.getState();
+	[~, ~, ~, labels] = gridDual(reshape(lambda, K, N * M), unary, vertC, horC);
 end

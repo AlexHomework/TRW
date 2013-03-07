@@ -1,15 +1,11 @@
 function [labels, energy, lowerBound, time] = bundleDual(unary, vertC, horC, varargin)
+	% Optimize dual energy via bundle method
+	% 
 
 	[K, N, M] = size(unary);
-
-
-	epsilon = 0.001;
-	mL = 0.1;
-	gamma = 0.1;
-	wMax = 10;
-	maxBundleSize = 10;
-
-	iterations_count = 200;
+	[epsilon, mL, gamma, wMax, maxBundleSize, iterations_count] = process_options(varargin, ...
+											'eps', 0.001, 'mL', 0.1, 'gamma', 0.1, 'wMax', 10, ...
+											'bundleSize', 10, 'iter', 700);
 
 	lambda_first = zeros(K * N * M, 1);
 	
@@ -25,23 +21,24 @@ function [labels, energy, lowerBound, time] = bundleDual(unary, vertC, horC, var
 	[dual_energy, grad, upper_energy, labels_first, labels_second] = dual(lambda_first);
 	min_upper_energy = upper_energy;
 	max_dual_energy = dual_energy;
-	bundle.lambda = lambda_first;
 	bundle.f = [dual_energy];
 	bundle.g = grad;
+	bundle.dotProduct = grad' * lambda_first;
+	bundle.gNorm = sumsqr(grad);
 	bundle.size = 1;
-	lambda_center = lambda_first;
+	lambdaCenter = lambda_first;
 	f_center = dual_energy;
 	w = 1;
 	for iteration = 1:iterations_count
 		% Firstly get current bundle maximization
 		% point and value of bundle funcion in this point.
-		[lambda_next, bundle_val_lambda_next, bundle] = maximizeBundle(bundle, lambda_center, w, maxBundleSize);
+		[lambda_next, bundle_val_lambda_next, bundle] = maximizeBundle(bundle, lambdaCenter, w, maxBundleSize);
 		delta = bundle_val_lambda_next - f_center;
 		[dual_energy, grad, upper_energy, labels_first, labels_second] = dual(lambda_next);
 		min_upper_energy = min([min_upper_energy, upper_energy]);
 		max_dual_energy = max([max_dual_energy, dual_energy]);
 		if ((dual_energy - f_center) >= mL * (bundle_val_lambda_next - f_center))
-			lambda_center = lambda_next;
+			lambdaCenter = lambda_next;
 			f_center = dual_energy;
 			w = gamma * (min_upper_energy - max_dual_energy) /  norm(grad);
 			if w > wMax
@@ -51,15 +48,15 @@ function [labels, energy, lowerBound, time] = bundleDual(unary, vertC, horC, var
 
 
 		% Update bundle
-		bundle.lambda(:, end + 1) = lambda_next;
 		bundle.f(end + 1, 1) = dual_energy;
 		bundle.g(:, end + 1) = grad;
+		bundle.dotProduct(end + 1, 1) = grad' * lambda_next;
+		bundle.gNorm(end + 1, 1) = sumsqr(grad);
 		bundle.size = bundle.size + 1;
 
 
 		if delta < epsilon
-			disp('delta is less then epsilon');
-			delta
+			sprintf('Delta is less then epsilon (''%d'' < ''%d''), finishing on ''%d'' iteration.', delta, epsilon, iteration)
 			break
 		end
 
@@ -74,33 +71,18 @@ function [lambdaMax, value, cleanedBundle] = maximizeBundle(bundle, lambdaCenter
 	% and possible remove least violated constraints (if
 	% bundle exceeded maximum size).
 	% 
-	% bundle.lambda(:, i) is point on the i-th step
 	% bundle.f(i) is the function value on the i-th step (in the lambda(:, i) point)
 	% bundle.g(:, i) is the gradient vector on the i-th step
+	% bundle.gNorm(i) = sumsqr(bundle.g(:, i))
+	% bundle.dotProduct(i) is bundle.g(:, i)' * [point on the i-th step]
 	% lambdaCenter is the regularization center
 	% w is regularization constant
 	% 
 
 	N = bundle.size;
-
-	% nFeatures = length(lambdaCenter);
-	% H = (w / 2) * speye(nFeatures + 1);
-	% H(nFeatures + 1, nFeatures + 1) = 0;
-	% f = -w * lambdaCenter;
-	% f(end + 1) = -1;
-	% A = [-bundle.g', ones(N, 1)];
-	% hyperplane = -sum(bundle.g .* bundle.lambda);
-	% b = hyperplane(:) + bundle.f;
- %    options = optimset('Algorithm', 'interior-point-convex');
- %    vars = quadprog(H, f, A, b, [], [], [], [], [], options);
- %    lambda = vars(1:end - 1)';
- %    lambdaMax = vars(end);
-
-
-
-	gNorms = sum(bundle.g.^2);
-	H = diag(gNorms) / w;
-	hyperplane = sum(bundle.g .* (bsxfun(@plus, -bundle.lambda, lambdaCenter)));
+	nFeatures = length(lambdaCenter);
+	H = diag(bundle.gNorm) / w;
+	hyperplane = -bundle.dotProduct' +  lambdaCenter' * bundle.g;
 	f = hyperplane(:) + bundle.f;
 
 	Aeq = ones(1, N);
@@ -112,19 +94,23 @@ function [lambdaMax, value, cleanedBundle] = maximizeBundle(bundle, lambdaCenter
     xi = quadprog(H, f, [], [], Aeq, beq, lb, ub, [], options);
 
 
-    lambdaMax = bundle.g * xi(:) / w + lambdaCenter;
-    constraints = sum(bundle.g .* (bsxfun(@plus, -bundle.lambda, lambdaMax)));
+    lambdaDiff = bundle.g * xi(:) / w;
+    lambdaMax = lambdaDiff + lambdaCenter;
+    constraints = hyperplane + lambdaDiff' * bundle.g;
     constraints = constraints(:) + bundle.f;
-    while bundle.size >= maxBundleSize
+    if bundle.size >= maxBundleSize
     	% Remove least violated constraint
+    	clear cleanedBundle;
     	[~, worst] = max(constraints);
-        constraints(worst) = [];
-    	bundle.lambda(:, worst) = [];
-    	bundle.f(worst) = [];
-    	bundle.g(:, worst) = [];
-    	bundle.size = bundle.size - 1;
-    end
-    cleanedBundle = bundle;
+    	idx = [1:(worst - 1), (worst + 1):N];
+    	cleanedBundle.f = bundle.f(idx);
+    	cleanedBundle.g = bundle.g(:, idx);
+    	cleanedBundle.dotProduct = bundle.dotProduct(idx);
+    	cleanedBundle.gNorm = bundle.gNorm(idx);
+    	cleanedBundle.size = bundle.size - 1;
+    else
+	    cleanedBundle = bundle;
+	end
     value = min(constraints);
 end
 

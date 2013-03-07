@@ -38,7 +38,7 @@ function compareEverything(experiment_name, varargin)
 	baseline_algos = getBaselineAlgos();
 	step_algos = getStepComputingAlgos();
 	allAlgoCount = numel(baseline_algos) + numel(step_algos);
-	colorsList = hsv(allAlgoCount);
+	colorsList = colorScheme(allAlgoCount);
 	if exist(experiment_folder, 'dir')
 		% Find that we have already computed
 		processed_filename = strcat(experiment_folder, '/processed_list.mat');

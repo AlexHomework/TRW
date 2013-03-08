@@ -16,7 +16,7 @@ function [dual_energy, grad, upper_energy, labels_first, labels_second] = gridDu
 	dual_energy = dual_energy + localEnergy;
 	upper_energy = min(wholeEnergy, upper_energy);
 
-	grad = zeros(K, N);
+	grad = sparse(K, N);
 	for p = 1:K
 		grad(p, :) = reshape(((labels_first == p) - (labels_second == p)), 1, N);
 	end

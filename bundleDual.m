@@ -3,9 +3,11 @@ function [labels, energy, lowerBound, time] = bundleDual(unary, vertC, horC, var
 	% 
 
 	[K, N, M] = size(unary);
-	[epsilon, mL, gamma, wMax, maxBundleSize, iterations_count] = process_options(varargin, ...
+	[epsilon, mL, gamma, wMax, maxBundleSize, iterations_count, drawProfilePlot, saveProfilePlot] = ...
+											process_options(varargin, ...
 											'eps', 0.001, 'mL', 0.1, 'gamma', 0.1, 'wMax', 10, ...
-											'bundleSize', 10, 'iter', 700);
+											'bundleSize', 10, 'iter', 400, 'drawProfilePlot', false, ...
+											'saveProfilePlot', @(fig, iter) 0);
 
 	lambda_first = zeros(K * N * M, 1);
 	
@@ -24,7 +26,6 @@ function [labels, energy, lowerBound, time] = bundleDual(unary, vertC, horC, var
 	bundle.f = [dual_energy];
 	bundle.g = grad;
 	bundle.dotProduct = grad' * lambda_first;
-	bundle.gNorm = sumsqr(grad);
 	bundle.size = 1;
 	lambdaCenter = lambda_first;
 	f_center = dual_energy;
@@ -33,6 +34,25 @@ function [labels, energy, lowerBound, time] = bundleDual(unary, vertC, horC, var
 		% Firstly get current bundle maximization
 		% point and value of bundle funcion in this point.
 		[lambda_next, bundle_val_lambda_next, bundle] = maximizeBundle(bundle, lambdaCenter, w, maxBundleSize);
+		
+		if drawProfilePlot && rem(iteration, 5) == 0
+			moments = [0:0.1:2];
+			direction = lambda_next - lambdaCenter;
+			values = arrayfun(@(x) dual(lambdaCenter + x * direction), moments);
+			profFig = figure;
+			hold on;
+			p1 = plot(moments, values, '-r');
+			for bundleIdx = 1:bundle.size
+				bundleValues = arrayfun(@(x) bundle.f(bundleIdx) + bundle.g(:, bundleIdx)' *(lambdaCenter + x * direction) - bundle.dotProduct(bundleIdx), moments);
+				p3 = plot(moments, bundleValues);
+			end
+			f = bundle.f - bundle.dotProduct + bundle.g' * lambdaCenter;
+			direction_proj = bundle.g' * direction;
+			values = arrayfun(@(x) min(f + x * direction_proj), moments);
+			p2 = plot(moments, values, '-g');
+			saveProfilePlot(profFig, int2str(iteration));
+		end
+
 		delta = bundle_val_lambda_next - f_center;
 		[dual_energy, grad, upper_energy, labels_first, labels_second] = dual(lambda_next);
 		min_upper_energy = min([min_upper_energy, upper_energy]);
@@ -51,8 +71,9 @@ function [labels, energy, lowerBound, time] = bundleDual(unary, vertC, horC, var
 		bundle.f(end + 1, 1) = dual_energy;
 		bundle.g(:, end + 1) = grad;
 		bundle.dotProduct(end + 1, 1) = grad' * lambda_next;
-		bundle.gNorm(end + 1, 1) = sumsqr(grad);
 		bundle.size = bundle.size + 1;
+
+		
 
 
 		if delta < epsilon
@@ -73,31 +94,30 @@ function [lambdaMax, value, cleanedBundle] = maximizeBundle(bundle, lambdaCenter
 	% 
 	% bundle.f(i) is the function value on the i-th step (in the lambda(:, i) point)
 	% bundle.g(:, i) is the gradient vector on the i-th step
-	% bundle.gNorm(i) = sumsqr(bundle.g(:, i))
 	% bundle.dotProduct(i) is bundle.g(:, i)' * [point on the i-th step]
 	% lambdaCenter is the regularization center
 	% w is regularization constant
 	% 
 
+
 	N = bundle.size;
 	nFeatures = length(lambdaCenter);
-	H = diag(bundle.gNorm) / w;
-	hyperplane = -bundle.dotProduct' +  lambdaCenter' * bundle.g;
-	f = hyperplane(:) + bundle.f;
+	H = bundle.g' * bundle.g / w;
+	f = bundle.f - bundle.dotProduct + bundle.g' * lambdaCenter;
 
 	Aeq = ones(1, N);
 	beq = 1;
 	lb = zeros(N, 1);
 	ub = ones(N, 1);
 
-    options = optimset('Algorithm', 'interior-point-convex');
+    options = optimset('Algorithm', 'interior-point-convex', 'Display', 'off');
     xi = quadprog(H, f, [], [], Aeq, beq, lb, ub, [], options);
 
 
     lambdaDiff = bundle.g * xi(:) / w;
     lambdaMax = lambdaDiff + lambdaCenter;
-    constraints = hyperplane + lambdaDiff' * bundle.g;
-    constraints = constraints(:) + bundle.f;
+    constraints = f + bundle.g' * lambdaDiff;
+    value = min(constraints);
     if bundle.size >= maxBundleSize
     	% Remove least violated constraint
     	clear cleanedBundle;
@@ -106,12 +126,10 @@ function [lambdaMax, value, cleanedBundle] = maximizeBundle(bundle, lambdaCenter
     	cleanedBundle.f = bundle.f(idx);
     	cleanedBundle.g = bundle.g(:, idx);
     	cleanedBundle.dotProduct = bundle.dotProduct(idx);
-    	cleanedBundle.gNorm = bundle.gNorm(idx);
     	cleanedBundle.size = bundle.size - 1;
     else
 	    cleanedBundle = bundle;
 	end
-    value = min(constraints);
 end
 
 

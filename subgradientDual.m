@@ -1,20 +1,59 @@
-function [labels, energy, lowerBound, time, step, dual_calls, iterations_info] = trwGridPotts(...
+function [labels, energy, lowerBound, time, step, dual_calls] = subgradientDual(...
 											unary, vertC, horC, dual_step, init_context, varargin)
+	% Optimize dual energy via subgradient ascent.
+	% Step 1-d optimization (step choosing) use dual_step function.
+	% 
+
 	[K, N, M] = size(unary);
 	dual_unary = unary / 2;
-	[random_init, save_iterations] = process_options(varargin, 'random_init', 0, 'save_iterations', []);
+	[random_init, max_iter] = process_options(varargin, 'randomInit', false, 'maxIter', 100);
 
 	if random_init
 		% Generate random lambda initialization
-		lambda = randn(K, N * M) / 2;
+		lambda_first = randn(K, N * M) / 2;
 	else
-		lambda = [];
+		lambda_first = zeros(K, N * M);
 	end
 	
-	[labels, energy, lowerBound, time, step, dual_calls, iterations_info] = dualDecomposition(K, N * M, ...
-						@(lambda) gridDual(lambda, unary, vertC, horC), dual_step, ...
-						init_context, 'lambda', lambda, 'save_iterations', save_iterations);
-	
-	labels = reshape(labels, N, M);
+	curr_dual_calls = 0;
+	function [dual_energy, grad, upper_energy, labels_first, labels_second] = dual_func(lambda)
+		curr_dual_calls = curr_dual_calls + 1;
+		[dual_energy, grad, upper_energy, labels_first, labels_second] = gridDual(lambda, unary, vertC, horC);
+	end
 
+	lowerBound = zeros(max_iter, 1);
+	energy = zeros(max_iter, 1);
+	best_dual_energy = 0;
+	time = zeros(max_iter, 1);
+	step = zeros(max_iter, 1);
+	dual_calls = zeros(max_iter, 1);
+	context = init_context;
+	t = cputime;
+	for iteration = 1:max_iter
+		% We will skip this part in time counting because it was already
+		% computed on the previous iteration in dual_step computation
+		% but it's really hard to store it (using neat code), so we recompute it
+		skip_time_start = cputime;
+		skip_oracle_calls_start = curr_dual_calls;
+		[dual_energy, grad, upper_energy, labels_first, labels_second] = dual_func(lambda_first);
+		curr_dual_calls = skip_oracle_calls_start;
+		t = t + (cputime - skip_time_start);
+
+		best_dual_energy = max(best_dual_energy, dual_energy);
+		lowerBound(iteration) = dual_energy;
+		energy(iteration) = upper_energy;
+
+		direction = grad; % Compute optimization direction
+
+		[context, curr_step, curr_dual_energy] = dual_step(@(step) dual_func(lambda_first + step * direction), ...
+													direction(:), grad(:), lowerBound, iteration, context);
+
+		dual_calls(iteration) = curr_dual_calls;
+		step(iteration) = curr_step;
+
+		lambda_first = lambda_first + curr_step * grad;
+		time(iteration) = cputime - t;
+	end
+
+	labels = reshape(labels_first, N, M);
 end

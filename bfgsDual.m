@@ -1,4 +1,4 @@
-function [labels, energy, lowerBound, time] = bfgsDual(unary, vertC, horC)
+function [labels, primal_energy, dual_energy, time, oracle_calls] = bfgsDual(unary, vertC, horC)
 	addpath('hanso/');
 
 	[K, N, M] = size(unary);
@@ -11,9 +11,10 @@ function [labels, energy, lowerBound, time] = bfgsDual(unary, vertC, horC)
 	end
 	pars.fgname = @minus_dual;
 	options.prtlevel = 2;
-	options.cpumax = 1000;
+	options.maxit = 30;
 	options.x0 = zeros(K * N * M, 1);
 	[lambda, ~] = hanso(pars, options);
-	[~, energy, lowerBound, time] = wrapper.getState();
+	[~, primal_energy, dual_energy, time] = wrapper.getState();
 	[~, ~, ~, labels] = gridDual(reshape(lambda, K, N * M), unary, vertC, horC);
+	oracle_calls = 1:length(dual_energy);
 end

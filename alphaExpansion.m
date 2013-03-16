@@ -5,8 +5,7 @@ function [labels, energy, time] = alphaExpansion(unary, vertC, horC)
 	GCO_Expansion(h);
 	labels = GCO_GetLabeling(h);
 	labels = reshape(labels, N, M);
-	[energy, ~, ~] = GCO_ComputeEnergy(h);
-	energy = double(energy);
 	GCO_Delete(h);
+	energy = gridEnergy(unary, vertC, horC, labels);
 	time = cputime - t;
 end

@@ -1,4 +1,4 @@
-function [labels, energy, lowerBound, time] = bundleDual(unary, vertC, horC, varargin)
+function [labels, energy, lowerBound, time, oracle_calls] = bundleDual(unary, vertC, horC, varargin)
 	% Optimize dual energy via bundle method
 	% 
 
@@ -9,6 +9,8 @@ function [labels, energy, lowerBound, time] = bundleDual(unary, vertC, horC, var
 											'bundleSize', 10, 'iter', 400, 'drawProfilePlot', false, ...
 											'saveProfilePlot', @(fig, iter) 0);
 
+
+    wMin = 1e-10;
 	lambda_first = zeros(K * N * M, 1);
 	
 	wrapper = gridDualWrapper(unary, vertC, horC);
@@ -64,6 +66,9 @@ function [labels, energy, lowerBound, time] = bundleDual(unary, vertC, horC, var
 			if w > wMax
 				w = wMax;
 			end
+			if w < wMin
+				w = wMin
+			end
 		end
 
 
@@ -85,6 +90,7 @@ function [labels, energy, lowerBound, time] = bundleDual(unary, vertC, horC, var
 
 	labels = labels_first;
 	[~, energy, lowerBound, time] = wrapper.getState();
+	oracle_calls = 1:(length(energy));
 end
 
 function [lambdaMax, value, cleanedBundle] = maximizeBundle(bundle, lambdaCenter, w, maxBundleSize)

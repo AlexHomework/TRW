@@ -1,0 +1,28 @@
+Matlab code to compare different Markov Random Field inference algorithms.
+Supported algorithms:
+Alpha-Expansion (C++ code by Olga Veksler and Andrew Delong)
+TRW-S (C++ code by Vladimir Kolmogorov)
+
+and various methods to maximizing dual function arising in Tree Reweighted Message Passing algorithm:
+Subgradient ascent (with various 1-d optimization routines)
+Bundle method
+L-BFGS (Matlab code by Michael Overton)
+
+Examples:
+% Firstly get some data to play with
+[unary, vertC, horC] = potentials('tsukuba');
+% Use TRW-S for solving stereo matching problem
+labels = TRW_S(unary, vertC, horC);
+showImage(labels);
+% Solve problem with various algorithms and draw comparative plot
+figure;
+hold on;
+[labels, primal_energy, dual_energy, time] = bundleDual(unary, vertC, horC, 'bundleSize', 10);
+plot(time, primal_energy, '-r');
+plot(time, dual_energy, '-r');
+[labels, primal_energy, dual_energy, time] = bfgsDual(unary, vertC, horC);
+plot(time, primal_energy, '-b');
+plot(time, dual_energy, '-b');
+xlabel('Time (sec)');
+ylabel('Energy');
+

@@ -3,16 +3,21 @@ function [labels, energy, lowerBound, time, oracle_calls] = bundleDual(unary, ve
 	% 
 
 	[K, N, M] = size(unary);
-	[epsilon, mL, gamma, wMax, maxBundleSize, iterations_count, drawProfilePlot, saveProfilePlot] = ...
+	[epsilon, mL, gamma, wMax, maxBundleSize, iterations_count, drawProfilePlot, profile_iterations, profileCallback] = ...
 											process_options(varargin, ...
 											'eps', 0.001, 'mL', 0.1, 'gamma', 0.1, 'wMax', 10, ...
-											'bundleSize', 10, 'iter', 400, 'drawProfilePlot', false, ...
-											'saveProfilePlot', @(fig, iter) 0);
+											'bundleSize', 10, 'maxIter', 40, 'profile', false, ...
+											'profileIters', [5, 10], 'profileCallback', @(fig, iter) 0);
 
 
     wMin = 1e-10;
 	lambda_first = zeros(K * N * M, 1);
 	
+	if drawProfilePlot
+		disp(['Profile plots will be generated. Be careful, it', ...
+			  ' can take a while and thus distort time measurements.']);
+	end
+
 	wrapper = gridDualWrapper(unary, vertC, horC);
 	function [dual_energy, grad, upper_energy, labels_first, labels_second] = dual(lambda)
 		[dual_energy, grad, upper_energy, labels_first, labels_second] = ...
@@ -34,16 +39,15 @@ function [labels, energy, lowerBound, time, oracle_calls] = bundleDual(unary, ve
 	w = 1;
 	for iteration = 1:iterations_count
 		% Firstly get current bundle maximization
-		% point and value of bundle funcion in this point.
+		% point and value of bundle funcion at this point.
 		[lambda_next, bundle_val_lambda_next, bundle] = maximizeBundle(bundle, lambdaCenter, w, maxBundleSize);
 		
-		if drawProfilePlot && rem(iteration, 5) == 0
-			moments = [0:0.1:2];
+		if drawProfilePlot && any(iteration == profile_iterations)
 			direction = lambda_next - lambdaCenter;
-			values = arrayfun(@(x) dual(lambdaCenter + x * direction), moments);
-			profFig = figure;
-			hold on;
-			p1 = plot(moments, values, '-r');
+			title = ['Profile (bundle size = ', int2str(maxBundleSize)];
+			title = [title, ', iter = ', int2str(iteration), ', w = ', num2str(w), ')'];
+			profFig = profilePlot(@dual, lambdaCenter, lambda_next, 'title', title);
+			moments = [0:0.1:2];
 			for bundleIdx = 1:bundle.size
 				bundleValues = arrayfun(@(x) bundle.f(bundleIdx) + bundle.g(:, bundleIdx)' *(lambdaCenter + x * direction) - bundle.dotProduct(bundleIdx), moments);
 				p3 = plot(moments, bundleValues);
@@ -52,7 +56,7 @@ function [labels, energy, lowerBound, time, oracle_calls] = bundleDual(unary, ve
 			direction_proj = bundle.g' * direction;
 			values = arrayfun(@(x) min(f + x * direction_proj), moments);
 			p2 = plot(moments, values, '-g');
-			saveProfilePlot(profFig, int2str(iteration));
+			profileCallback(profFig, iteration);
 		end
 
 		delta = bundle_val_lambda_next - f_center;
@@ -62,12 +66,12 @@ function [labels, energy, lowerBound, time, oracle_calls] = bundleDual(unary, ve
 		if ((dual_energy - f_center) >= mL * (bundle_val_lambda_next - f_center))
 			lambdaCenter = lambda_next;
 			f_center = dual_energy;
-			w = gamma * (min_upper_energy - max_dual_energy) /  norm(grad);
+			w = norm(grad) / (gamma * (min_upper_energy - max_dual_energy));
 			if w > wMax
 				w = wMax;
 			end
 			if w < wMin
-				w = wMin
+				w = wMin;
 			end
 		end
 
@@ -105,7 +109,6 @@ function [lambdaMax, value, cleanedBundle] = maximizeBundle(bundle, lambdaCenter
 	% w is regularization constant
 	% 
 
-
 	N = bundle.size;
 	nFeatures = length(lambdaCenter);
 	H = bundle.g' * bundle.g / w;
@@ -124,6 +127,14 @@ function [lambdaMax, value, cleanedBundle] = maximizeBundle(bundle, lambdaCenter
     lambdaMax = lambdaDiff + lambdaCenter;
     constraints = f + bundle.g' * lambdaDiff;
     value = min(constraints);
+
+    % % Compare fast optimization with the slow one to make sure that everything is implemented correctly.
+    % [lambdaMaxOld, valueOld] = maximizeBundleOld(bundle, lambdaCenter, w, maxBundleSize);
+    % diff = norm(lambdaMaxOld-lambdaMax)/norm(lambdaMaxOld+lambdaMax);
+    % disp(diff);
+    % disp(value)
+    % disp(valueOld)
+
     if bundle.size >= maxBundleSize
     	% Remove least violated constraint
     	clear cleanedBundle;
@@ -139,3 +150,17 @@ function [lambdaMax, value, cleanedBundle] = maximizeBundle(bundle, lambdaCenter
 end
 
 
+function [lambdaMax, value] = maximizeBundleOld(bundle, lambdaCenter, w, maxBundleSize)
+	N = bundle.size;
+	nFeatures = length(lambdaCenter);
+	H = w * speye(nFeatures + 1);
+	H(nFeatures + 1, nFeatures + 1) = 0;
+	f = -w * lambdaCenter;
+	f(end + 1) = -1;
+	A = [-bundle.g', ones(N, 1)];
+	b = -bundle.dotProduct + bundle.f;
+	options = optimset('Algorithm', 'interior-point-convex');
+	vars = quadprog(H, f, A, b, [], [], [], [], [], options);
+	lambdaMax = vars(1:end - 1);
+	value = vars(end);
+end

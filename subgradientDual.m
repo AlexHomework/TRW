@@ -6,7 +6,14 @@ function [labels, energy, lowerBound, time, step, dual_calls] = subgradientDual(
 
 	[K, N, M] = size(unary);
 	dual_unary = unary / 2;
-	[random_init, max_iter] = process_options(varargin, 'randomInit', false, 'maxIter', 100);
+	[random_init, max_iter, drawProfilePlot, profile_iterations, profileCallback] = ...
+						process_options(varargin, 'randomInit', false, 'maxIter', 100, 'profile', false, ...
+						'profileIters', [5, 10], 'profileCallback', @(fig, iter) 0);
+
+	if drawProfilePlot
+		disp(['Profile plots will be generated. Be careful, it', ...
+			  ' can take a while and thus distort time measurements.']);
+	end
 
 	if random_init
 		% Generate random lambda initialization
@@ -48,11 +55,19 @@ function [labels, energy, lowerBound, time, step, dual_calls] = subgradientDual(
 		[context, curr_step, curr_dual_energy] = dual_step(@(step) dual_func(lambda_first + step * direction), ...
 													direction(:), grad(:), lowerBound, iteration, context);
 
+		if drawProfilePlot && any(iteration == profile_iterations)
+			title = ['Profile subgradient (step size = ', int2str(curr_step)];
+			title = [title, ', iter = ', int2str(iteration), ')'];
+			profFig = profilePlot(@dual_func, lambda_first, lambda_first + curr_step * grad, 'title', title);
+			profileCallback(profFig, iteration);
+		end
+		
 		dual_calls(iteration) = curr_dual_calls;
 		step(iteration) = curr_step;
 
 		lambda_first = lambda_first + curr_step * grad;
 		time(iteration) = cputime - t;
+
 	end
 
 	labels = reshape(labels_first, N, M);
